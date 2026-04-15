@@ -1,0 +1,349 @@
+{
+  "Apple___Apple_scab": {
+    "description": "Apple scab is a fungal disease that causes olive-green to black scabs on leaves and fruit, leading to premature leaf drop.",
+    "organic_treatment": [
+      "Rake and destroy fallen leaves in autumn to reduce winter spores.",
+      "Apply neem oil or sulfur-based organic sprays preventatively."
+    ],
+    "chemical_treatment": [
+      "Apply fungicides containing myclobutanil or captan early in the season."
+    ]
+  },
+  "Apple___Black_rot": {
+    "description": "Black rot is a fungal disease causing brown leaf spots, fruit rot, and cankers on branches.",
+    "organic_treatment": [
+      "Prune out dead or diseased wood during the dormant season.",
+      "Remove mummified fruit from the tree and ground."
+    ],
+    "chemical_treatment": [
+      "Apply mancozeb or captan-based fungicides starting at petal fall."
+    ]
+  },
+  "Apple___Cedar_apple_rust": {
+    "description": "A fungal disease that requires both apple and cedar trees to complete its life cycle, causing bright orange spots on leaves.",
+    "organic_treatment": [
+      "Remove nearby eastern red cedar trees or prune out the galls in winter.",
+      "Apply copper fungicides early in the spring."
+    ],
+    "chemical_treatment": [
+      "Use protective fungicide sprays like myclobutanil as soon as blossoms open."
+    ]
+  },
+  "Apple___healthy": {
+    "description": "The plant appears perfectly healthy.",
+    "organic_treatment": [
+      "Maintain a regular watering schedule.",
+      "Prune annually to maintain good airflow."
+    ],
+    "chemical_treatment": []
+  },
+  "Blueberry___healthy": {
+    "description": "The blueberry plant looks healthy.",
+    "organic_treatment": [
+      "Maintain soil acidity (pH 4.5 to 5.5).",
+      "Apply pine needle or bark mulch to retain moisture."
+    ],
+    "chemical_treatment": []
+  },
+  "Cherry_(including_sour)___Powdery_mildew": {
+    "description": "Powdery mildew appears as a white, powdery fungal growth on leaves, distorting new growth.",
+    "organic_treatment": [
+      "Apply sulfur dust or potassium bicarbonate sprays.",
+      "Ensure good air circulation through proper pruning."
+    ],
+    "chemical_treatment": [
+      "Apply systemic fungicides like tebuconazole if the infection is severe."
+    ]
+  },
+  "Cherry_(including_sour)___healthy": {
+    "description": "The cherry tree appears healthy.",
+    "organic_treatment": [
+      "Monitor for aphids and maintain good soil drainage."
+    ],
+    "chemical_treatment": []
+  },
+  "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+    "description": "A fungal disease causing rectangular, pale brown-to-gray lesions on corn leaves, severely reducing yields.",
+    "organic_treatment": [
+      "Practice crop rotation with non-host crops.",
+      "Plow under infected crop debris after harvest."
+    ],
+    "chemical_treatment": [
+      "Apply foliar fungicides containing pyraclostrobin or azoxystrobin before tasseling."
+    ]
+  },
+  "Corn_(maize)___Common_rust_": {
+    "description": "Common rust causes elongated, brick-red pustules on both surfaces of corn leaves.",
+    "organic_treatment": [
+      "Plant rust-resistant corn hybrids.",
+      "Ensure adequate spacing to reduce humidity in the canopy."
+    ],
+    "chemical_treatment": [
+      "Apply a protectant fungicide early if rust appears before the silking stage."
+    ]
+  },
+  "Corn_(maize)___Northern_Leaf_Blight": {
+    "description": "Characterized by long, cigar-shaped, grayish-green to tan lesions. It thrives in moderate temperatures with heavy dew.",
+    "organic_treatment": [
+      "Rotate crops away from corn for at least one year.",
+      "Till soil deeply to bury infected debris."
+    ],
+    "chemical_treatment": [
+      "Apply systemic fungicides like propiconazole if lesions spread to the upper leaves."
+    ]
+  },
+  "Corn_(maize)___healthy": {
+    "description": "The corn plant is healthy.",
+    "organic_treatment": [
+      "Ensure consistent watering, especially during the silking and tasseling phases."
+    ],
+    "chemical_treatment": []
+  },
+  "Grape___Black_rot": {
+    "description": "A devastating fungal disease that turns grape berries into black, shriveled mummies.",
+    "organic_treatment": [
+      "Remove all mummified fruit from vines and the ground during winter.",
+      "Apply copper or sulfur sprays strictly as a preventative."
+    ],
+    "chemical_treatment": [
+      "Apply mancozeb or myclobutanil fungicides starting from early shoot growth."
+    ]
+  },
+  "Grape___Esca_(Black_Measles)": {
+    "description": "A complex fungal trunk disease causing 'tiger-stripe' patterns on leaves and dark spotting on berries.",
+    "organic_treatment": [
+      "Prune vines late in the dormant season to minimize spore infection.",
+      "Remove and burn deeply infected cordons or trunks."
+    ],
+    "chemical_treatment": [
+      "No highly effective chemical cures exist; focus on preventative pruning wound protectants."
+    ]
+  },
+  "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": {
+    "description": "A minor fungal disease causing irregular brown spots with dark margins on the lower leaves.",
+    "organic_treatment": [
+      "Rake and destroy fallen leaves to remove the overwintering fungus.",
+      "Improve canopy airflow via summer pruning."
+    ],
+    "chemical_treatment": [
+      "Standard broad-spectrum fungicides used for other grape diseases will usually control this."
+    ]
+  },
+  "Grape___healthy": {
+    "description": "The grapevine looks healthy.",
+    "organic_treatment": [
+      "Keep the canopy well-managed for airflow and sun exposure."
+    ],
+    "chemical_treatment": []
+  },
+  "Orange___Haunglongbing_(Citrus_greening)": {
+    "description": "A fatal bacterial disease spread by the Asian citrus psyllid, causing mottled leaves and bitter, misshapen green fruit.",
+    "organic_treatment": [
+      "Infected trees cannot be cured and MUST be removed to prevent spreading.",
+      "Use organic insecticidal soaps to control the psyllid population on healthy trees."
+    ],
+    "chemical_treatment": [
+      "Apply systemic insecticides like imidacloprid to control the psyllid vector."
+    ]
+  },
+  "Peach___Bacterial_spot": {
+    "description": "A bacterial disease causing small, dark, angular lesions on leaves that eventually drop out, leaving 'shot holes'.",
+    "organic_treatment": [
+      "Maintain optimal tree nutrition to increase natural resistance.",
+      "Avoid overhead irrigation."
+    ],
+    "chemical_treatment": [
+      "Apply copper-based bactericides or oxytetracycline during the growing season."
+    ]
+  },
+  "Peach___healthy": {
+    "description": "The peach tree is healthy.",
+    "organic_treatment": [
+      "Apply dormant oil sprays in winter to prevent spring pest outbreaks."
+    ],
+    "chemical_treatment": []
+  },
+  "Pepper,_bell___Bacterial_spot": {
+    "description": "Bacterial spot causes water-soaked lesions on leaves and fruit of pepper plants, thriving in warm, humid weather.",
+    "organic_treatment": [
+      "Apply organic copper sprays cautiously.",
+      "Avoid working with or touching the plants when they are wet."
+    ],
+    "chemical_treatment": [
+      "Apply bactericides containing streptomycin (watch for local resistance)."
+    ]
+  },
+  "Pepper,_bell___healthy": {
+    "description": "The bell pepper plant appears healthy.",
+    "organic_treatment": [
+      "Maintain consistent soil moisture to prevent blossom end rot."
+    ],
+    "chemical_treatment": []
+  },
+  "Potato___Early_blight": {
+    "description": "Early blight is a fungal disease that causes 'bullseye' patterned brown spots on older, lower leaves.",
+    "organic_treatment": [
+      "Apply a biofungicide containing Bacillus subtilis.",
+      "Rotate crops and remove all plant debris after harvest."
+    ],
+    "chemical_treatment": [
+      "Use broad-spectrum fungicides like chlorothalonil or mancozeb."
+    ]
+  },
+  "Potato___Late_blight": {
+    "description": "A highly destructive water mold disease that causes large, dark lesions on leaves and massive tuber rot. (The cause of the Irish Potato Famine).",
+    "organic_treatment": [
+      "Destroy infected plants immediately.",
+      "Plant certified disease-free seed potatoes."
+    ],
+    "chemical_treatment": [
+      "Apply systemic fungicides containing mefenoxam or cymoxanil immediately upon detection."
+    ]
+  },
+  "Potato___healthy": {
+    "description": "The potato plant is healthy.",
+    "organic_treatment": [
+      "Hill up soil around the base of the plant to protect developing tubers from sun exposure."
+    ],
+    "chemical_treatment": []
+  },
+  "Raspberry___healthy": {
+    "description": "The raspberry plant appears healthy.",
+    "organic_treatment": [
+      "Prune out old, woody canes to encourage new growth."
+    ],
+    "chemical_treatment": []
+  },
+  "Soybean___healthy": {
+    "description": "The soybean plant is healthy.",
+    "organic_treatment": [
+      "Monitor for aphids and ensure good soil drainage."
+    ],
+    "chemical_treatment": []
+  },
+  "Squash___Powdery_mildew": {
+    "description": "A common fungal disease creating a white, dusty coating on squash leaves, stunting plant growth.",
+    "organic_treatment": [
+      "Spray with neem oil or a baking soda/liquid soap mixture.",
+      "Water at the base of the plant to keep leaves dry."
+    ],
+    "chemical_treatment": [
+      "Apply fungicides with the active ingredient chlorothalonil."
+    ]
+  },
+  "Strawberry___Leaf_scorch": {
+    "description": "A fungal disease causing solid purple to brown spots on leaves, lacking the light center seen in other leaf spots.",
+    "organic_treatment": [
+      "Remove and destroy heavily infected leaves.",
+      "Plant in well-draining soil and avoid dense, overcrowded patches."
+    ],
+    "chemical_treatment": [
+      "Apply protective fungicides like captan during wet spring weather."
+    ]
+  },
+  "Strawberry___healthy": {
+    "description": "The strawberry plant looks healthy.",
+    "organic_treatment": [
+      "Use straw mulch to keep berries off the bare soil and prevent rot."
+    ],
+    "chemical_treatment": []
+  },
+  "Tomato___Bacterial_spot": {
+    "description": "Causes small, water-soaked, greasy spots on leaves and raised, scabby spots on tomato fruits.",
+    "organic_treatment": [
+      "Remove heavily infected plants to save nearby healthy ones.",
+      "Use a copper-based organic spray to slow the spread."
+    ],
+    "chemical_treatment": [
+      "Apply a mixture of mancozeb and copper hydroxide."
+    ]
+  },
+  "Tomato___Early_blight": {
+    "description": "A common fungal disease characterized by small, dark lesions with concentric rings (bullseyes) on lower leaves.",
+    "organic_treatment": [
+      "Remove infected lower leaves immediately.",
+      "Apply compost tea or copper-based fungicides."
+    ],
+    "chemical_treatment": [
+      "Apply fungicides containing chlorothalonil or azoxystrobin."
+    ]
+  },
+  "Tomato___Late_blight": {
+    "description": "Late blight is a fast-spreading, destructive disease causing large, dark, greasy blotches on leaves and white mold on the undersides.",
+    "organic_treatment": [
+      "Remove and bag affected plants immediately. Do NOT compost them.",
+      "Ensure very good air circulation around remaining plants."
+    ],
+    "chemical_treatment": [
+      "Apply fungicides containing chlorothalonil aggressively if detected early."
+    ]
+  },
+  "Tomato___Leaf_Mold": {
+    "description": "A fungal disease primarily affecting greenhouse or high-humidity tomatoes, causing pale green spots on upper leaves and olive-green mold underneath.",
+    "organic_treatment": [
+      "Reduce humidity significantly by increasing ventilation and pruning lower leaves.",
+      "Avoid overhead watering."
+    ],
+    "chemical_treatment": [
+      "Apply fungicides containing difenoconazole or cyprodinil."
+    ]
+  },
+  "Tomato___Septoria_leaf_spot": {
+    "description": "A destructive fungal disease causing numerous small, circular spots with dark borders and gray centers, leading to rapid defoliation.",
+    "organic_treatment": [
+      "Remove infected leaves immediately and sanitize tools.",
+      "Mulch deeply to prevent soil spores from splashing onto lower leaves."
+    ],
+    "chemical_treatment": [
+      "Apply chlorothalonil-based fungicides on a 7-10 day schedule."
+    ]
+  },
+  "Tomato___Spider_mites Two-spotted_spider_mite": {
+    "description": "Tiny arachnids that suck sap from leaves, causing a stippled, yellowed appearance and fine webbing on the undersides.",
+    "organic_treatment": [
+      "Spray undersides of leaves with a strong blast of water to dislodge them.",
+      "Apply insecticidal soap or neem oil."
+    ],
+    "chemical_treatment": [
+      "Use targeted miticides like abamectin or bifenazate (broad-spectrum insecticides often worsen spider mite outbreaks)."
+    ]
+  },
+  "Tomato___Target_Spot": {
+    "description": "A fungal disease causing dark brown lesions with concentric rings on leaves and sunken spots on the fruit.",
+    "organic_treatment": [
+      "Improve air flow through aggressive pruning.",
+      "Apply copper-based organic fungicides."
+    ],
+    "chemical_treatment": [
+      "Apply fungicides like mancozeb or chlorothalonil."
+    ]
+  },
+  "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+    "description": "A severe viral disease transmitted by whiteflies. Plants are stunted, and leaves curl upward and turn yellow at the edges.",
+    "organic_treatment": [
+      "Pull and destroy infected plants immediately—the virus cannot be cured.",
+      "Use reflective mulches and sticky traps to deter whiteflies."
+    ],
+    "chemical_treatment": [
+      "Apply insecticides like imidacloprid to control the whitefly vectors, not the virus itself."
+    ]
+  },
+  "Tomato___Tomato_mosaic_virus": {
+    "description": "A highly contagious virus causing mottled light and dark green patterns on leaves and stunted growth. It is easily spread by hands and tools.",
+    "organic_treatment": [
+      "Destroy infected plants immediately by burning or bagging.",
+      "Thoroughly wash hands and sanitize tools with bleach before touching healthy plants."
+    ],
+    "chemical_treatment": [
+      "No chemical treatments exist for plant viruses."
+    ]
+  },
+  "Tomato___healthy": {
+    "description": "The tomato plant appears to be healthy.",
+    "organic_treatment": [
+      "Monitor regularly for signs of pests or disease.",
+      "Prune suckers to maintain good airflow and redirect energy to fruit production."
+    ],
+    "chemical_treatment": []
+  }
+}
