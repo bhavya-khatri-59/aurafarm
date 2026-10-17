@@ -1,56 +1,84 @@
-from dotenv import load_dotenv
 import os
-import google.generativeai as genai
-from typing import Dict, List, Optional
-import math
 import json
+import math
+from typing import Dict, List, Optional
+from dotenv import load_dotenv
+from groq import AsyncGroq
 
 # --- Load environment variables from .env file ---
 load_dotenv()
 
 # --- Configuration ---
-try:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable not set or found in .env file.")
-    genai.configure(api_key=api_key)
-    
-    model = genai.GenerativeModel('gemini-2.5-flash-lite')
-except Exception as e:
-    print(f"Error configuring Gemini: {e}")
-    model = None
+api_key = os.environ.get("GROQ_API_KEY")
+if not api_key:
+    print("Warning: GROQ_API_KEY environment variable not set or found in .env file.")
+    client = None
+else:
+    client = AsyncGroq(api_key=api_key)
 
+# Default to LLaMA 3.3 70B (fast inference and strong reasoning on Groq)
+MODEL_NAME = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 MAX_CONTEXT_TOKENS = 12000
+
+SYSTEM_INSTRUCTION = """You are 'AuraFarm', a friendly and expert agricultural assistant.
+- Provide helpful, clear advice for farmers.
+- If diagnosis/weather/nearby data is provided, use it to give a high-precision response.
+- If nearby farmers report the same disease, warn about potential local outbreaks.
+- Respond strictly in English."""
+
 
 def _estimate_tokens(text: str) -> int:
     """A simple heuristic for token estimation."""
     return math.ceil(len(text.split()) * 1.5)
 
-def _truncate_history_by_tokens(history: List[Dict]) -> List[Dict]:
-    """Ensures the conversation history does not exceed the token limit."""
-    if not history:
-        return []
-    
-    current_token_count = 0
-    truncated_conversation = []
 
-    for message in reversed(history):
-        message_text = ""
-        parts = message.get('parts', [])
-        if parts and isinstance(parts[0], dict):
-            message_text = parts[0].get('text', "")
-        elif parts and isinstance(parts[0], str):
-            message_text = parts[0]
-        
-        message_tokens = _estimate_tokens(message_text)
-        
-        if current_token_count + message_tokens > MAX_CONTEXT_TOKENS:
-            break
-        
-        truncated_conversation.insert(0, message)
-        current_token_count += message_tokens
+def _extract_text(message: Dict) -> str:
+    """Extracts raw text whether the message format is OpenAI/Groq or legacy Gemini."""
+    if "content" in message and isinstance(message["content"], str):
+        return message["content"]
     
-    return truncated_conversation
+    parts = message.get("parts", [])
+    if parts:
+        if isinstance(parts[0], dict):
+            return parts[0].get("text", "")
+        if isinstance(parts[0], str):
+            return parts[0]
+    return ""
+
+
+def _normalize_and_truncate_history(history: List[Dict], current_user_msg: str) -> List[Dict]:
+    """
+    Normalizes history items to standard Groq messages ({'role': ..., 'content': ...})
+    and truncates to avoid exceeding token limits.
+    """
+    normalized: List[Dict] = []
+    
+    for msg in history:
+        role = msg.get("role", "user")
+        # Map Gemini's 'model' role to Groq/OpenAI's 'assistant'
+        if role == "model":
+            role = "assistant"
+            
+        text = _extract_text(msg)
+        if text:
+            normalized.append({"role": role, "content": text})
+
+    # Append current turn
+    normalized.append({"role": "user", "content": current_user_msg})
+
+    # Truncate oldest messages if token budget is exceeded
+    current_tokens = 0
+    truncated_messages: List[Dict] = []
+
+    for msg in reversed(normalized):
+        tokens = _estimate_tokens(msg["content"])
+        if current_tokens + tokens > MAX_CONTEXT_TOKENS:
+            break
+        truncated_messages.insert(0, msg)
+        current_tokens += tokens
+
+    return truncated_messages
+
 
 async def get_conversational_response(
     user_prompt: str,
@@ -60,63 +88,41 @@ async def get_conversational_response(
     nearby_farmers: Optional[List[Dict]] = None
 ) -> str:
     """
-    Constructs a prompt and gets a response from Gemini.
+    Constructs contextual messages and retrieves a conversational response via Groq.
     """
-    if not model:
-        return "Error: The AI model is not configured. Please check the API key."
+    if not client:
+        return "Error: The Groq client is not configured. Please check your GROQ_API_KEY."
 
-    # --- System Instructions ---
-    system_instruction = """
-    You are 'AuraFarm', a friendly and expert agricultural assistant.
-    - Provide helpful, clear advice for farmers.
-    - If diagnosis/weather/nearby data is provided, use it to give a high-precision response.
-    - If nearby farmers report the same disease, warn about potential local outbreaks.
-    - Respond strictly in english.
-    """
-
-    # --- Context Injection Logic ---
-    # We inject context whenever a diagnosis is present, OR if it's the very first message.
+    # Build contextual prompt if diagnostic info is available
     if diagnosis:
-        farmer_reports_str = json.dumps(nearby_farmers, indent=2) if nearby_farmers else "No data available."
-        
-        # We wrap the user's specific prompt with all the data we've gathered
-        enriched_prompt = f"""
-        {system_instruction}
+        farmer_reports_str = (
+            json.dumps(nearby_farmers, indent=2) if nearby_farmers else "No data available."
+        )
+        current_user_text = f"""### CONTEXTUAL DATA ###
+1. AI Plant Diagnosis: {json.dumps(diagnosis, indent=2)}
+2. Local Weather: {json.dumps(weather, indent=2)}
+3. Community Reports: {farmer_reports_str}
 
-        ### CONTEXTUAL DATA ###
-        1. AI Plant Diagnosis: {json.dumps(diagnosis, indent=2)}
-        2. Local Weather: {json.dumps(weather, indent=2)}
-        3. Community Reports: {farmer_reports_str}
+### FARMER'S MESSAGE ###
+"{user_prompt}"
 
-        ### FARMER'S MESSAGE ###
-        "{user_prompt}"
-
-        Please analyze the diagnosis and weather together. For example, if it's humid and the plant has a fungal infection, explain why that weather makes it worse.
-        """
-        current_message = {'role': 'user', 'parts': [{'text': enriched_prompt}]}
+Please analyze the diagnosis and weather together. For example, if it's humid and the plant has a fungal infection, explain why that weather makes it worse."""
     else:
-        # Standard conversation mode
-        if not history:
-            current_message = {'role': 'user', 'parts': [{'text': system_instruction + "\n\n" + user_prompt}]}
-        else:
-            current_message = {'role': 'user', 'parts': [{'text': user_prompt}]}
+        current_user_text = user_prompt
 
-    # Combine history with the current turn
-    api_history = history + [current_message]
-    
+    # Format messages array for Groq
+    messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
+    messages.extend(_normalize_and_truncate_history(history, current_user_text))
+
     try:
-        safe_history = _truncate_history_by_tokens(api_history)
-        
-        # Start chat with everything EXCEPT the last message
-        chat_session_history = safe_history[:-1]
-        # Send the last message as the new prompt
-        last_message_text = safe_history[-1]['parts'][0]['text']
+        chat_completion = await client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=messages,
+            temperature=0.4,
+            max_completion_tokens=1024,
+        )
+        return chat_completion.choices[0].message.content or ""
 
-        chat = model.start_chat(history=chat_session_history)
-        response = await chat.send_message_async(last_message_text)
-        
-        return response.text
-        
     except Exception as e:
-        print(f"Error calling Gemini API: {e}")
+        print(f"Error calling Groq API: {e}")
         return f"Sorry, I encountered an error. (Error: {e})"
