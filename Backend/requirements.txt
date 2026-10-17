@@ -1,10 +1,33 @@
-fastapi
-uvicorn[standard]
-python-dotenv
-google-generativeai
-Pillow
-python-multipart
-httpx
-numpy
-torch
-torchvision
+# Web API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+pydantic-settings>=2.4
+email-validator>=2.2
+httpx>=0.27
+
+# Auth & storage
+sqlalchemy[asyncio]>=2.0
+aiosqlite>=0.20
+pyjwt>=2.9
+bcrypt>=4.2
+
+# Agents
+langgraph>=1.0
+langgraph-checkpoint-sqlite>=2.0
+langchain-core>=1.0
+langchain-groq>=1.0
+langchain-text-splitters>=0.3
+
+# Knowledge base & search
+chromadb>=1.0
+sentence-transformers>=3.0
+ddgs>=9.0
+trafilatura>=2.0
+pypdf>=5.0
+pyyaml>=6.0
+
+# Vision model
+torch>=2.2
+torchvision>=0.17
+pillow>=10.0

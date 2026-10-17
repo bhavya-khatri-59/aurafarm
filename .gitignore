@@ -4,3 +4,8 @@ __pycache__/
 venv
 Model/*
 */*.pth
+# Backend runtime data
+Backend/.venv/
+Backend/data/
+Backend/kb/docs/
+.pytest_cache/

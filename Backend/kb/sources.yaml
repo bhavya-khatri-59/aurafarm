@@ -1,0 +1,334 @@
+# Public extension-service guides that make up the remedy knowledge base.
+#
+# `crop` and `disease` must use the slugs in app/services/labels.py. Use `general` for material
+# that covers several diseases of a crop (disease: general) or several crops (crop: general).
+# Documents are fetched by scripts/fetch_kb.py into kb/docs/ (not committed: the text belongs to
+# the publishers) and embedded by scripts/ingest_kb.py.
+
+sources:
+  # ---------- Apple ----------
+  - id: ky-apple-scab
+    url: https://publications.ca.uky.edu/sites/publications.ca.uky.edu/files/ppfs-fr-t-05.pdf
+    org: University of Kentucky Extension
+    crop: apple
+    disease: apple_scab
+  - id: psu-apple-black-rot
+    url: https://extension.psu.edu/pome-fruit-disease-black-rot-and-frogeye-leaf-spot
+    org: Penn State Extension
+    crop: apple
+    disease: black_rot
+  - id: osu-apple-black-rot
+    url: https://ohioline.osu.edu/factsheet/plpath-fru-07
+    org: Ohio State University Extension
+    crop: apple
+    disease: black_rot
+  - id: ky-apple-black-rot
+    url: https://publications.ca.uky.edu/sites/publications.ca.uky.edu/files/ppfs-fr-t-03.pdf
+    org: University of Kentucky Extension
+    crop: apple
+    disease: black_rot
+  - id: umass-cedar-apple-rust
+    url: https://www.umass.edu/agriculture-food-environment/fruit/fact-sheets/apple-ipm-cedar-apple-rust
+    org: UMass Extension
+    crop: apple
+    disease: cedar_apple_rust
+  - id: psu-apple-rusts
+    url: https://extension.psu.edu/rust-diseases-of-apple-in-the-home-fruit-planting
+    org: Penn State Extension
+    crop: apple
+    disease: cedar_apple_rust
+  - id: ncsu-cedar-apple-rust
+    url: https://content.ces.ncsu.edu/cedar-apple-rusts
+    org: NC State Extension
+    crop: apple
+    disease: cedar_apple_rust
+
+  # ---------- Cherry ----------
+  - id: wsu-cherry-powdery-mildew
+    url: https://hortsense.cahnrs.wsu.edu/fact-sheet/cherry-powdery-mildew/
+    org: Washington State University HortSense
+    crop: cherry
+    disease: powdery_mildew
+  - id: usu-fruit-powdery-mildew
+    url: https://extension.usu.edu/planthealth/ipm/notes_ag/fruit-powdery-mildew
+    org: Utah State University Extension
+    crop: cherry
+    disease: powdery_mildew
+
+  # ---------- Corn ----------
+  - id: umn-corn-gray-leaf-spot
+    url: https://extension.umn.edu/corn-pest-management/gray-leaf-spot-corn
+    org: University of Minnesota Extension
+    crop: corn
+    disease: gray_leaf_spot
+  - id: ncsu-corn-gray-leaf-spot
+    url: https://content.ces.ncsu.edu/gray-leaf-spot-in-corn
+    org: NC State Extension
+    crop: corn
+    disease: gray_leaf_spot
+  - id: unl-corn-gray-leaf-spot
+    url: https://extensionpubs.unl.edu/publication/g1902/html/view
+    org: University of Nebraska-Lincoln Extension
+    crop: corn
+    disease: gray_leaf_spot
+  - id: umn-corn-common-rust
+    url: https://extension.umn.edu/corn-pest-management/common-rust-corn
+    org: University of Minnesota Extension
+    crop: corn
+    disease: common_rust
+  - id: osu-corn-common-rust
+    url: https://ohioline.osu.edu/factsheet/plpath-cer-02
+    org: Ohio State University Extension
+    crop: corn
+    disease: common_rust
+  - id: umass-corn-common-rust
+    url: https://www.umass.edu/agriculture-food-environment/vegetable/fact-sheets/corn-common-rust
+    org: UMass Extension
+    crop: corn
+    disease: common_rust
+  - id: udel-northern-corn-leaf-blight
+    url: https://www.udel.edu/content/dam/udelImages/canr/pdfs/extension/factsheets/Northern-Corn-Leaf-Blight.pdf
+    org: University of Delaware Cooperative Extension
+    crop: corn
+    disease: northern_leaf_blight
+  - id: wisc-corn-leaf-diseases
+    url: https://corn.agronomy.wisc.edu/Management/pdfs/A3879-02.pdf
+    org: University of Wisconsin Extension
+    crop: corn
+    disease: general
+  - id: umn-corn-leaf-spots
+    url: https://apps.extension.umn.edu/garden/diagnose/plant/vegetable/corn/leavesspotsstreaks.html
+    org: University of Minnesota Extension
+    crop: corn
+    disease: general
+
+  # ---------- Grape ----------
+  - id: isu-grape-black-rot
+    url: https://yardandgarden.extension.iastate.edu/encyclopedia/black-rot-grape
+    org: Iowa State University Extension
+    crop: grape
+    disease: black_rot
+  - id: uaex-grape-black-rot
+    url: https://www.uaex.uada.edu/publications/pdf/FSA-7556.pdf
+    org: University of Arkansas Cooperative Extension
+    crop: grape
+    disease: black_rot
+  - id: wineland-esca
+    url: https://www.wineland.co.za/?p=8161
+    org: Wineland (South Africa)
+    crop: grape
+    disease: esca
+  - id: ky-grape-leaf-spots
+    url: https://publications.ca.uky.edu/sites/publications.ca.uky.edu/files/PPFS-FR-S-16.pdf
+    org: University of Kentucky Extension
+    crop: grape
+    disease: leaf_blight
+
+  # ---------- Orange (citrus) ----------
+  - id: ufifas-hlb-guidance
+    url: https://journals.flvc.org/edis/article/view/118594
+    org: UF/IFAS Extension (EDIS)
+    crop: orange
+    disease: citrus_greening
+  - id: ufifas-hlb-hs1165
+    url: https://crec.ifas.ufl.edu/media/crecifasufledu/extension/plant-pathology-/greening/pdf/HS116500.pdf
+    org: UF/IFAS Citrus Research and Education Center
+    crop: orange
+    disease: citrus_greening
+
+  # ---------- Peach ----------
+  - id: aces-peach-bacterial-spot
+    url: https://www.aces.edu/blog/topics/crop-production/bacterial-spot-treatment-in-peaches/
+    org: Alabama Cooperative Extension System
+    crop: peach
+    disease: bacterial_spot
+  - id: msu-peach-bacterial-spot
+    url: https://www.canr.msu.edu/ipm/agriculture/fruit/bacterial_spot_of_peach_and_plum
+    org: Michigan State University IPM
+    crop: peach
+    disease: bacterial_spot
+  - id: isu-stonefruit-bacterial-spot
+    url: https://yardandgarden.extension.iastate.edu/encyclopedia/bacterial-spot-stonefruit-trees
+    org: Iowa State University Extension
+    crop: peach
+    disease: bacterial_spot
+
+  # ---------- Bell pepper ----------
+  - id: umn-pepper-bacterial-spot
+    url: https://extension.umn.edu/diseases/bacterial-spot-tomato-and-pepper
+    org: University of Minnesota Extension
+    crop: pepper
+    disease: bacterial_spot
+  - id: ky-pepper-bacterial-spot
+    url: https://publications.ca.uky.edu/sites/publications.ca.uky.edu/files/ppfs-vg-17.pdf
+    org: University of Kentucky Extension
+    crop: pepper
+    disease: bacterial_spot
+
+  # ---------- Potato ----------
+  - id: umaine-early-blight
+    url: https://extension.umaine.edu/ipm/?p=4592
+    org: University of Maine Cooperative Extension
+    crop: potato
+    disease: early_blight
+  - id: msu-potato-early-blight
+    url: https://www.canr.msu.edu/psbp/resources/early-blight-bulletin.pdf
+    org: Michigan State University
+    crop: potato
+    disease: early_blight
+  - id: wsu-potato-late-blight
+    url: https://hortsense.cahnrs.wsu.edu/fact-sheet/potato-late-blight/
+    org: Washington State University HortSense
+    crop: potato
+    disease: late_blight
+  - id: uidaho-late-blight
+    url: https://webpages.uidaho.edu/extension-seed-potato/PDF/BUL1022LateBlightHomeGarden.pdf
+    org: University of Idaho Extension
+    crop: potato
+    disease: late_blight
+  - id: wisc-potato-late-blight
+    url: https://barron.extension.wisc.edu/files/2023/02/Potato-Late-Blight.pdf
+    org: University of Wisconsin-Madison Extension
+    crop: potato
+    disease: late_blight
+
+  # ---------- Squash ----------
+  - id: umaine-cucurbit-powdery-mildew
+    url: https://extension.umaine.edu/ipm/?p=4613
+    org: University of Maine Cooperative Extension
+    crop: squash
+    disease: powdery_mildew
+  - id: usu-cucurbit-powdery-mildew
+    url: https://extension.usu.edu/vegetableguide/cucurbits/powdery-mildew.php
+    org: Utah State University Extension
+    crop: squash
+    disease: powdery_mildew
+  - id: ncsu-cucurbit-powdery-mildew
+    url: https://content.ces.ncsu.edu/cucurbit-powdery-mildew
+    org: NC State Extension
+    crop: squash
+    disease: powdery_mildew
+  - id: ucipm-cucurbit-powdery-mildew
+    url: https://ipm.ucanr.edu/PMG/GARDEN/VEGES/DISEASES/cupowerymildew.html
+    org: UC Statewide IPM Program
+    crop: squash
+    disease: powdery_mildew
+
+  # ---------- Strawberry ----------
+  - id: ncsu-strawberry-leaf-scorch
+    url: https://content.ces.ncsu.edu/leaf-scorch-of-strawberry
+    org: NC State Extension
+    crop: strawberry
+    disease: leaf_scorch
+  - id: osu-strawberry-leaf-diseases
+    url: https://ohioline.osu.edu/factsheet/plpath-fru-35
+    org: Ohio State University Extension
+    crop: strawberry
+    disease: leaf_scorch
+  - id: umass-strawberry-foliar
+    url: https://www.umass.edu/agriculture-food-environment/fruit/fact-sheets/strawberry-ipm-common-foliar-diseases
+    org: UMass Extension
+    crop: strawberry
+    disease: general
+
+  # ---------- Tomato ----------
+  - id: umn-tomato-bacterial-spot
+    url: https://extension.umn.edu/diseases/bacterial-spot-tomato-and-pepper
+    org: University of Minnesota Extension
+    crop: tomato
+    disease: bacterial_spot
+  - id: purdue-copper-bacterial-spot
+    url: https://vegcropshotline.org/article/an-update-on-the-use-of-copper-products-for-managing-bacterial-spot-of-tomato/
+    org: Purdue University Vegetable Crops Hotline
+    crop: tomato
+    disease: bacterial_spot
+  - id: ky-tomato-early-blight
+    url: https://plantpathology.ca.uky.edu/files/ppfs-vg-25.pdf
+    org: University of Kentucky Extension
+    crop: tomato
+    disease: early_blight
+  - id: umaine-tomato-early-blight
+    url: https://extension.umaine.edu/ipm/?p=4592
+    org: University of Maine Cooperative Extension
+    crop: tomato
+    disease: early_blight
+  - id: umass-tomato-leaf-blights
+    url: https://www.umass.edu/agriculture-food-environment/vegetable/fact-sheets/tomato-leaf-blights
+    org: UMass Extension
+    crop: tomato
+    disease: general
+  - id: cornell-late-blight
+    url: https://apps.web.maine.gov/dacf/php/gotpests/diseases/factsheets/late-blight-brochure-cornell.pdf
+    org: Cornell Cooperative Extension
+    crop: tomato
+    disease: late_blight
+  - id: umn-tomato-leaf-mold
+    url: https://extension.umn.edu/diseases/leaf-mold-tomato
+    org: University of Minnesota Extension
+    crop: tomato
+    disease: leaf_mold
+  - id: usu-tomato-leaf-mold
+    url: https://extension.usu.edu/vegetableguide/tomato-pepper-eggplant/leaf-mold
+    org: Utah State University Extension
+    crop: tomato
+    disease: leaf_mold
+  - id: umass-tomato-leaf-mold
+    url: https://www.umass.edu/agriculture-food-environment/vegetable/fact-sheets/tomato-leaf-mold
+    org: UMass Extension
+    crop: tomato
+    disease: leaf_mold
+  - id: umaine-septoria
+    url: https://extension.umaine.edu/ipm/?p=4626
+    org: University of Maine Cooperative Extension
+    crop: tomato
+    disease: septoria_leaf_spot
+  - id: ky-tomato-septoria
+    url: https://plantpathology.ca.uky.edu/files/ppfs-vg-26.pdf
+    org: University of Kentucky Extension
+    crop: tomato
+    disease: septoria_leaf_spot
+  - id: udel-spider-mites
+    url: https://www.udel.edu/academics/colleges/canr/cooperative-extension/fact-sheets/two-spotted-spider-mites/
+    org: University of Delaware Cooperative Extension
+    crop: tomato
+    disease: spider_mites
+  - id: uconn-tomato-spider-mites
+    url: https://ipm.cahnr.uconn.edu/tomato-spider-mites/
+    org: UConn Extension IPM
+    crop: tomato
+    disease: spider_mites
+  - id: umd-spider-mites
+    url: https://extension.umd.edu/resource/expect-see-two-spotted-spider-mites-vegetables
+    org: University of Maryland Extension
+    crop: tomato
+    disease: spider_mites
+  - id: ufifas-target-spot
+    url: https://edis.ifas.ufl.edu/publication/PP351/pdf
+    org: UF/IFAS Extension (EDIS)
+    crop: tomato
+    disease: target_spot
+  - id: pestnet-target-spot
+    url: https://www.pestnet.org/fact_sheets/tomato_target_spot_163.htm
+    org: Pacific Pests, Pathogens & Weeds
+    crop: tomato
+    disease: target_spot
+  - id: ufifas-tylcv-home
+    url: https://ipm.ifas.ufl.edu/agricultural_ipm/tylcv_home_mgmt.shtml
+    org: UF/IFAS Integrated Pest Management
+    crop: tomato
+    disease: yellow_leaf_curl_virus
+  - id: ufifas-whitefly-mgmt
+    url: https://ipm.ifas.ufl.edu/pdfs/Whitefly_Mgmt.pdf
+    org: UF/IFAS Integrated Pest Management
+    crop: tomato
+    disease: yellow_leaf_curl_virus
+  - id: wsu-tomato-mosaic
+    url: https://hortsense.cahnrs.wsu.edu/fact-sheet/tomato-mosaic-viruses/
+    org: Washington State University HortSense
+    crop: tomato
+    disease: mosaic_virus
+  - id: tnau-tomato-diseases
+    url: https://agritech.tnau.ac.in/crop_protection/crop_prot_crop%20diseases_veg_tomato.html
+    org: TNAU Agritech Portal
+    crop: tomato
+    disease: general
