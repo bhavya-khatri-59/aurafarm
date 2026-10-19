@@ -9,6 +9,7 @@
 """
 
 import json
+import logging
 from collections.abc import Callable
 from typing import Annotated
 
@@ -25,12 +26,15 @@ from langgraph.prebuilt import InjectedState, ToolNode, tools_condition
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.agents.diagnosis import ImageLoader, make_diagnosis_node
+from app.agents.llm import retry_on_groq_error
 from app.agents.prompts import ORCHESTRATOR_PROMPT
 from app.agents.remedy import build_remedy_agent, run_remedy_agent
 from app.agents.state import AgentState
 from app.config import get_settings
 from app.services import places
 from app.services.knowledge_base import KnowledgeBase
+
+logger = logging.getLogger(__name__)
 
 ORCHESTRATOR_NODE = "orchestrator"
 
@@ -60,7 +64,7 @@ def build_graph(
 
     @tool
     async def consult_remedy_specialist(
-        question: str, state: Annotated[dict, InjectedState]
+        state: Annotated[dict, InjectedState], question: str = ""
     ) -> str:
         """Ask the remedy specialist about treatment, prevention, products, spraying or disease
         biology. It researches curated extension guides and the web and returns cited advice.
@@ -72,6 +76,10 @@ def build_graph(
         get_stream_writer()({"type": "status", "text": "Researching treatments…"})
         diagnosis = state.get("diagnosis") or {}
         confident = diagnosis.get("status") == "confident"
+        if not question.strip():
+            if not diagnosis:
+                return "Error: pass the farmer's question as `question`."
+            question = f"How should a farmer treat and prevent {diagnosis['name'].lower()}?"
         try:
             return await run_remedy_agent(
                 remedy_agent,
@@ -81,6 +89,12 @@ def build_graph(
             )
         except GraphRecursionError:
             return "The remedy specialist could not finish its research. Answer from general knowledge with caution."
+        except Exception:
+            logger.exception("Remedy agent failed")
+            return (
+                "The remedy specialist is unavailable right now. Answer from general knowledge with "
+                "caution, say that sources could not be checked, and suggest local extension services."
+            )
 
     @tool
     async def find_nearby_help(
@@ -104,7 +118,7 @@ def build_graph(
         return json.dumps(found, ensure_ascii=False)
 
     tools = [consult_remedy_specialist, find_nearby_help]
-    llm_with_tools = orchestrator_llm.bind_tools(tools)
+    llm_with_tools = retry_on_groq_error(orchestrator_llm.bind_tools(tools))
 
     async def orchestrator(state: AgentState) -> dict:
         history = trim_messages(

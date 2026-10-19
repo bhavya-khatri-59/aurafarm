@@ -41,3 +41,27 @@ def hashing_embedder(texts: list[str], dims: int = 256) -> list[list[float]]:
         norm = math.sqrt(sum(v * v for v in vec)) or 1.0
         vectors.append([v / norm for v in vec])
     return vectors
+
+
+class FailingOnceChatModel(ScriptedChatModel):
+    """Raises a Groq tool-call validation error on the first call, then follows the script."""
+
+    failed: bool = False
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
+        if not self.failed:
+            import groq
+            import httpx
+
+            self.failed = True
+            raise groq.APIError(
+                "Tool call validation failed: parameters for tool search_web did not match schema",
+                httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions"),
+                body=None,
+            )
+        return super()._generate(messages, stop, run_manager, **kwargs)
+
+
+class AlwaysFailingChatModel(ScriptedChatModel):
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
+        raise RuntimeError("model unavailable")

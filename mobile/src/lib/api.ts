@@ -68,19 +68,38 @@ export const api = {
     request<Conversation>(`/conversations/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
   deleteConversation: (id: string) => request<void>(`/conversations/${id}`, { method: 'DELETE' }),
 
-  async uploadImage(uri: string, mimeType: string): Promise<string> {
+  /**
+   * Uses XMLHttpRequest rather than fetch: Expo replaces the global fetch with expo/fetch, which
+   * rejects React Native's `{ uri, name, type }` file parts. React Native's XHR uploads them natively.
+   */
+  uploadImage(uri: string, mimeType: string): Promise<string> {
     const form = new FormData();
     const extension = mimeType.split('/')[1] ?? 'jpg';
-    // React Native's FormData accepts a { uri, name, type } file descriptor.
     form.append('image', { uri, name: `leaf.${extension}`, type: mimeType } as any);
-    let response: Response;
-    try {
-      response = await fetch(`${API_URL}/uploads`, { method: 'POST', headers: authHeaders(), body: form });
-    } catch {
-      throw new ApiError(0, `Can't reach the AuraFarm server at ${API_URL}`);
-    }
-    if (!response.ok) throw await errorFrom(response);
-    return (await response.json()).id;
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_URL}/uploads`);
+      for (const [key, value] of Object.entries(authHeaders())) xhr.setRequestHeader(key, value);
+      xhr.onload = () => {
+        let body: any = null;
+        try {
+          body = JSON.parse(xhr.responseText);
+        } catch {
+          // Non-JSON body; handled below.
+        }
+        if (xhr.status >= 200 && xhr.status < 300 && body?.id) {
+          resolve(body.id);
+          return;
+        }
+        if (xhr.status === 401) onUnauthorized?.();
+        reject(new ApiError(xhr.status, typeof body?.detail === 'string' ? body.detail : `Upload failed (${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new ApiError(0, `Can't reach the AuraFarm server at ${API_URL}`));
+      xhr.ontimeout = () => reject(new ApiError(0, 'The photo upload timed out'));
+      xhr.timeout = 60_000;
+      xhr.send(form);
+    });
   },
 
   /** Sends a message and calls onEvent for each server-sent event as the agent works. */

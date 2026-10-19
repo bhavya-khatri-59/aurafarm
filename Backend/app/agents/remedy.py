@@ -11,6 +11,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import InjectedState, ToolNode, tools_condition
 
+from app.agents.llm import retry_on_groq_error
 from app.agents.prompts import REMEDY_PROMPT
 from app.services.knowledge_base import KnowledgeBase
 from app.services.labels import CROPS, DISEASES
@@ -29,8 +30,8 @@ def build_remedy_agent(llm: BaseChatModel, get_kb: Callable[[], KnowledgeBase]) 
 
     @tool
     async def search_knowledge_base(
-        query: str,
         state: Annotated[dict, InjectedState],
+        query: str = "",
         crop: str | None = None,
         disease: str | None = None,
     ) -> str:
@@ -43,25 +44,28 @@ def build_remedy_agent(llm: BaseChatModel, get_kb: Callable[[], KnowledgeBase]) 
         """
         crop = crop if crop in CROPS else state.get("crop")
         disease = disease if disease in DISEASES else state.get("disease")
+        query = query.strip() or " ".join(p for p in (crop, disease, "treatment") if p).replace("_", " ")
         hits = await get_kb().asearch(query, crop=crop, disease=disease, k=5)
         if not hits:
             return "No relevant knowledge base material found."
         return json.dumps(hits, ensure_ascii=False)
 
     @tool
-    async def search_web(query: str) -> str:
+    async def search_web(query: str = "") -> str:
         """Search the web for up-to-date or region-specific agricultural information.
 
         Args:
             query: The search query. Include the crop, the disease and, if relevant, the region.
         """
+        if not query.strip():
+            return "Error: pass a non-empty `query`."
         results = await web_search(query)
         if not results:
             return "Web search returned no results."
         return json.dumps(results, ensure_ascii=False)
 
     tools = [search_knowledge_base, search_web]
-    llm_with_tools = llm.bind_tools(tools)
+    llm_with_tools = retry_on_groq_error(llm.bind_tools(tools))
 
     async def call_model(state: RemedyState):
         diagnosis = (
