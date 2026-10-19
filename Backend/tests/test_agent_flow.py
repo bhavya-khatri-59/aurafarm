@@ -15,7 +15,7 @@ from app.models import DiseaseReport
 from app.services import classifier, places, weather
 from app.services.knowledge_base import KnowledgeBase
 from tests.conftest import register
-from tests.fakes import ScriptedChatModel, hashing_embedder, tool_call
+from tests.fakes import ScriptedChatModel, StreamingScriptedChatModel, hashing_embedder, tool_call
 
 
 def parse_sse(body: str) -> list[tuple[str, dict]]:
@@ -63,7 +63,6 @@ def kb():
 
 async def test_photo_turn_then_follow_up(client, stub_services, kb):
     orchestrator = ScriptedChatModel(responses=[
-        tool_call("consult_remedy_specialist", {"question": "How to treat tomato late blight in humid weather?"}),
         AIMessage("Your tomato has **late blight**. Apply mancozeb before the rain."),
         AIMessage("Yes, remove and destroy the infected plants."),
     ])
@@ -105,36 +104,76 @@ async def test_photo_turn_then_follow_up(client, stub_services, kb):
     assert dict(events)["message"]["content"].startswith("Your tomato has **late blight**")
     assert dict(events)["done"]["conversation_title"] == "What is wrong with my plant?"
 
-    # The remedy agent's KB search was scoped to the diagnosed crop and disease.
+    # Remedy research ran deterministically after the diagnosis, scoped to the diagnosed disease,
+    # and was asked about the current weather.
+    assert "92% humidity" in remedy.calls[0][-1].content
     kb_result = next(m for m in remedy.calls[1] if isinstance(m, ToolMessage))
     hits = json.loads(kb_result.content)
     assert hits[0]["disease"] == "late_blight" and hits[0]["match"] == "crop_and_disease"
 
-    # The orchestrator saw the fresh diagnosis in its system prompt.
+    # The orchestrator answered in one step with the diagnosis and the research in its context.
+    assert len(orchestrator.calls) == 1
     system = orchestrator.calls[0][0]
     assert isinstance(system, SystemMessage) and "NEW this turn" in system.content
+    assert "apply mancozeb. Sources: Late blight guide" in system.content
+    assert "already been diagnosed" in orchestrator.calls[0][-1].content
 
     # A confident diagnosis with location is recorded for the community outbreak signal.
     async with session_factory()() as session:
         reports = (await session.scalars(select(DiseaseReport))).all()
     assert len(reports) == 1 and reports[0].lat == 12.97
 
-    # Turn 2: follow-up without a photo keeps the diagnosis from checkpointed state.
+    # Turn 2: a follow-up without a photo keeps the diagnosis and the research from checkpointed state.
     response = await client.post(
         f"/conversations/{conversation_id}/messages", json={"text": "Should I remove the plants?"}, headers=headers
     )
     events = parse_sse(response.text)
     assert "diagnosis" not in [kind for kind, _ in events]
     assert dict(events)["message"]["content"] == "Yes, remove and destroy the infected plants."
-    follow_up_system = orchestrator.calls[2][0].content
+    follow_up_system = orchestrator.calls[1][0].content
     assert "from an earlier message" in follow_up_system and "Tomato___Late_blight" in follow_up_system
-    # Full history (including the earlier tool exchange) is carried by the checkpointer.
-    assert any(isinstance(m, ToolMessage) for m in orchestrator.calls[2])
+    assert "apply mancozeb. Sources: Late blight guide" in follow_up_system
+    assert len(remedy.calls) == 2  # no new research needed
 
     detail = (await client.get(f"/conversations/{conversation_id}", headers=headers)).json()
     assert [m["role"] for m in detail["messages"]] == ["user", "assistant", "user", "assistant"]
     assert detail["messages"][0]["image_id"] == upload_id
     assert detail["messages"][1]["diagnosis"]["label"] == "Tomato___Late_blight"
+
+
+async def test_text_streamed_before_a_tool_call_is_reset(client, kb, monkeypatch):
+    from app.services import web_search as web_search_module
+
+    async def no_results(query, max_results=5):
+        return []
+
+    monkeypatch.setattr(web_search_module, "web_search", no_results)
+    orchestrator = StreamingScriptedChatModel(responses=[
+        AIMessage("Let me look that up.", tool_calls=[
+            {"name": "consult_remedy_specialist", "args": {"question": "aphids on tomato?"}, "id": "c1", "type": "tool_call"}
+        ]),
+        AIMessage("Spray insecticidal soap."),
+    ])
+    app.state.graph = build_graph(
+        orchestrator, ScriptedChatModel(responses=[AIMessage("Use insecticidal soap.")]),
+        lambda: kb, session_factory(), load_image, InMemorySaver(),
+    )
+    headers = await register(client)
+    conversation_id = (await client.post("/conversations", json={}, headers=headers)).json()["id"]
+    events = parse_sse((await client.post(
+        f"/conversations/{conversation_id}/messages", json={"text": "aphids?"}, headers=headers
+    )).text)
+
+    # Replaying the stream the way the app does gives only the final answer.
+    shown = ""
+    for kind, data in events:
+        if kind == "reset":
+            shown = ""
+        elif kind == "token":
+            shown += data["text"]
+    assert "reset" in [kind for kind, _ in events]
+    assert shown == "Spray insecticidal soap."
+    assert dict(events)["message"]["content"] == "Spray insecticidal soap."
 
 
 async def test_uncertain_diagnosis_is_not_recorded(client, monkeypatch, stub_services, kb):

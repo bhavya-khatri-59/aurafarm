@@ -1,9 +1,10 @@
 import hashlib
+import json
 import math
 import re
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 
 
 class ScriptedChatModel(BaseChatModel):
@@ -41,6 +42,24 @@ def hashing_embedder(texts: list[str], dims: int = 256) -> list[list[float]]:
         norm = math.sqrt(sum(v * v for v in vec)) or 1.0
         vectors.append([v / norm for v in vec])
     return vectors
+
+
+class StreamingScriptedChatModel(ScriptedChatModel):
+    """Like ScriptedChatModel, but streams each reply word by word like a real provider."""
+
+    def _stream(self, messages, stop=None, run_manager=None, **kwargs):
+        message = self._generate(messages).generations[0].message
+        words = message.content.split(" ") if message.content else []
+        for i, word in enumerate(words):
+            text = word if i == len(words) - 1 else word + " "
+            if run_manager:
+                run_manager.on_llm_new_token(text)
+            yield ChatGenerationChunk(message=AIMessageChunk(content=text))
+        if message.tool_calls:
+            yield ChatGenerationChunk(message=AIMessageChunk(content="", tool_call_chunks=[
+                {"name": c["name"], "args": json.dumps(c["args"]), "id": c["id"], "index": i}
+                for i, c in enumerate(message.tool_calls)
+            ]))
 
 
 class FailingOnceChatModel(ScriptedChatModel):

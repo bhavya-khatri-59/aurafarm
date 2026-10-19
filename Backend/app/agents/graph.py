@@ -1,11 +1,14 @@
 """The AuraFarm agent graph.
 
-    START ─┬─(photo attached)─> diagnose ─> orchestrator <──> tools ─> END
-           └──────────────────────────────> orchestrator
+    START ─┬─(photo)─> diagnose ─┬─(confident disease)─> remedy_research ─┐
+           │                     └────────────────────────────────────────┤
+           └──────────────────────────────────────────────────────────────┴─> orchestrator <──> tools ─> END
 
 - diagnose: deterministic node (classifier, weather, outbreaks, places).
+- remedy_research: runs the remedy agent for a new confident diagnosis, so treatment advice never
+  depends on the orchestrator deciding to ask for it.
 - orchestrator: LLM that talks to the farmer and decides which tools/agents to call.
-- tools: includes `consult_remedy_specialist`, which runs the remedy agent (its own graph).
+- tools: `consult_remedy_specialist` (the remedy agent, for other questions) and `find_nearby_help`.
 """
 
 import json
@@ -47,9 +50,25 @@ def _context_block(state: AgentState) -> str:
     if diagnosis is None:
         parts.append("No photo has been diagnosed in this conversation yet.")
     else:
-        freshness = "NEW this turn" if state.get("new_diagnosis") else "from an earlier message"
-        parts.append(f"Latest photo diagnosis ({freshness}):\n{json.dumps(diagnosis, indent=1)}")
-    return "\n".join(parts)
+        freshness = (
+            "NEW this turn: the photo has already been analysed, present this result now"
+            if state.get("new_diagnosis") else "from an earlier message"
+        )
+        parts.append(f"Latest photo diagnosis ({freshness}):\n{json.dumps(diagnosis)}")
+    if state.get("remedy_notes"):
+        parts.append(f"Remedy specialist's research for this diagnosis (already done):\n{state['remedy_notes']}")
+    return "\n\n".join(parts)
+
+
+def _remedy_question(diagnosis: dict) -> str:
+    question = f"How should a farmer treat and prevent {diagnosis['name'].lower()}?"
+    weather = diagnosis.get("weather") or {}
+    if weather.get("humidity") is not None:
+        question += (
+            f" Current weather: {weather.get('condition')}, {weather.get('temp_c')}°C, "
+            f"{weather.get('humidity')}% humidity. Include cultural/organic and chemical options."
+        )
+    return question
 
 
 def build_graph(
@@ -62,24 +81,9 @@ def build_graph(
 ) -> CompiledStateGraph:
     remedy_agent = build_remedy_agent(remedy_llm, get_kb)
 
-    @tool
-    async def consult_remedy_specialist(
-        state: Annotated[dict, InjectedState], question: str = ""
-    ) -> str:
-        """Ask the remedy specialist about treatment, prevention, products, spraying or disease
-        biology. It researches curated extension guides and the web and returns cited advice.
-
-        Args:
-            question: A self-contained question including the crop, the disease and any relevant
-                details from the conversation (weather, organic preference, severity, region).
-        """
+    async def research(question: str, diagnosis: dict) -> str:
         get_stream_writer()({"type": "status", "text": "Researching treatments…"})
-        diagnosis = state.get("diagnosis") or {}
         confident = diagnosis.get("status") == "confident"
-        if not question.strip():
-            if not diagnosis:
-                return "Error: pass the farmer's question as `question`."
-            question = f"How should a farmer treat and prevent {diagnosis['name'].lower()}?"
         try:
             return await run_remedy_agent(
                 remedy_agent,
@@ -95,6 +99,28 @@ def build_graph(
                 "The remedy specialist is unavailable right now. Answer from general knowledge with "
                 "caution, say that sources could not be checked, and suggest local extension services."
             )
+
+    async def remedy_research(state: AgentState) -> dict:
+        diagnosis = state["diagnosis"]
+        return {"remedy_notes": await research(_remedy_question(diagnosis), diagnosis)}
+
+    @tool
+    async def consult_remedy_specialist(
+        state: Annotated[dict, InjectedState], question: str = ""
+    ) -> str:
+        """Ask the remedy specialist about treatment, prevention, products, spraying or disease
+        biology. It researches curated extension guides and the web and returns cited advice.
+
+        Args:
+            question: A self-contained question including the crop, the disease and any relevant
+                details from the conversation (weather, organic preference, severity, region).
+        """
+        diagnosis = state.get("diagnosis") or {}
+        if not question.strip():
+            if not diagnosis:
+                return "Error: pass the farmer's question as `question`."
+            question = _remedy_question(diagnosis)
+        return await research(question, diagnosis)
 
     @tool
     async def find_nearby_help(
@@ -134,12 +160,20 @@ def build_graph(
     def route_start(state: AgentState) -> str:
         return "diagnose" if state.get("image_id") else ORCHESTRATOR_NODE
 
+    def route_after_diagnosis(state: AgentState) -> str:
+        diagnosis = state["diagnosis"]
+        if diagnosis["status"] == "confident" and not diagnosis["is_healthy"]:
+            return "remedy_research"
+        return ORCHESTRATOR_NODE
+
     graph = StateGraph(AgentState)
     graph.add_node("diagnose", make_diagnosis_node(sessions, load_image))
+    graph.add_node("remedy_research", remedy_research)
     graph.add_node(ORCHESTRATOR_NODE, orchestrator)
     graph.add_node("tools", ToolNode(tools))
     graph.add_conditional_edges(START, route_start, ["diagnose", ORCHESTRATOR_NODE])
-    graph.add_edge("diagnose", ORCHESTRATOR_NODE)
+    graph.add_conditional_edges("diagnose", route_after_diagnosis, ["remedy_research", ORCHESTRATOR_NODE])
+    graph.add_edge("remedy_research", ORCHESTRATOR_NODE)
     graph.add_conditional_edges(ORCHESTRATOR_NODE, tools_condition, {"tools": "tools", END: END})
     graph.add_edge("tools", ORCHESTRATOR_NODE)
     return graph.compile(checkpointer=checkpointer, name="aurafarm")

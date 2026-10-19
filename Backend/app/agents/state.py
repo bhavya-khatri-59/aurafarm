@@ -18,3 +18,5 @@ class AgentState(TypedDict, total=False):
     # The most recent diagnosis in this conversation; persists across turns for follow-up questions.
     diagnosis: dict | None
     new_diagnosis: bool
+    # The remedy agent's research for `diagnosis`; cleared whenever a new photo is diagnosed.
+    remedy_notes: str | None

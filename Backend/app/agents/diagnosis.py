@@ -63,6 +63,6 @@ def make_diagnosis_node(sessions: async_sessionmaker[AsyncSession], load_image: 
             "location_available": location is not None,
         }
         write({"type": "diagnosis", "diagnosis": diagnosis})
-        return {"diagnosis": diagnosis, "new_diagnosis": True, "image_id": None}
+        return {"diagnosis": diagnosis, "new_diagnosis": True, "image_id": None, "remedy_notes": None}
 
     return diagnose

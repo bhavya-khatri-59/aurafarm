@@ -18,6 +18,7 @@ def test_label_normalization():
     assert (label.crop, label.disease) == ("corn", "gray_leaf_spot")
     assert LABELS["Tomato___healthy"].is_healthy
     assert LABELS["Pepper,_bell___Bacterial_spot"].display == "Bell pepper bacterial spot"
+    assert LABELS["Apple___Apple_scab"].display == "Apple scab"
 
 
 def test_geo_helpers():

@@ -114,6 +114,9 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
               case 'diagnosis':
                 updateItem(replyKey, () => ({ diagnosis: data }));
                 break;
+              case 'reset':
+                updateItem(replyKey, () => ({ content: '' }));
+                break;
               case 'token':
                 updateItem(replyKey, (item) => ({ content: item.content + data.text, status: null }));
                 break;

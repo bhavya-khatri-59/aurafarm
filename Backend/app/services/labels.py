@@ -26,6 +26,8 @@ class PlantLabel:
     def display(self) -> str:
         if self.is_healthy:
             return f"Healthy {self.crop_name.lower()}"
+        if self.disease_name.lower().startswith(self.crop_name.lower()):  # "Apple scab", not "Apple apple scab"
+            return self.disease_name
         return f"{self.crop_name} {self.disease_name.lower()}"
 
 

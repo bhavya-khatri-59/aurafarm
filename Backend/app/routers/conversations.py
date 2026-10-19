@@ -113,8 +113,8 @@ async def send_message(
     session: AsyncSession = Depends(get_session),
 ):
     """Runs one agent turn and streams it as server-sent events:
-    `user_message`, then any of `status` / `diagnosis` / `token`, then `message` and `done`
-    (or `error`)."""
+    `user_message`, then any of `status` / `diagnosis` / `token` / `reset` (discard streamed
+    text), then `message` and `done` (or `error`)."""
     graph = request.app.state.graph
     if graph is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "The assistant is not configured (missing GROQ_API_KEY)")
@@ -138,7 +138,8 @@ async def send_message(
 
     llm_text = text
     if body.image_id:
-        llm_text = f"[Attached a photo of a plant]\n{text}" if text else "[Attached a photo of a plant] Please diagnose this plant."
+        marker = "[Attached a plant photo. It has already been diagnosed; see the context.]"
+        llm_text = f"{marker}\n{text}" if text else f"{marker} What is wrong with my plant?"
     graph_input: dict = {
         "messages": [HumanMessage(llm_text)],
         "user_id": user.id,
@@ -152,6 +153,7 @@ async def send_message(
     async def stream() -> AsyncIterator[str]:
         yield _sse("user_message", user_message_out)
         diagnosis = None
+        streaming_message_id = None  # tokens before a tool call are discarded with a `reset`
         try:
             async for mode, payload in graph.astream(
                 graph_input, config, stream_mode=["messages", "custom"]
@@ -170,6 +172,10 @@ async def send_message(
                         and isinstance(chunk.content, str)
                         and chunk.content
                     ):
+                        if chunk.id != streaming_message_id:
+                            if streaming_message_id is not None:
+                                yield _sse("reset", {})
+                            streaming_message_id = chunk.id
                         yield _sse("token", {"text": chunk.content})
 
             final_state = await graph.aget_state(config)
