@@ -18,10 +18,12 @@ function RootNavigator() {
   }
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!user}>
+      {/* Explicit redirects: without them a guarded route falls back to the sibling group's
+          path, and both groups live at "/", which (auth) has no screen for. */}
+      <Stack.Protected guard={!!user} redirectTo="/login">
         <Stack.Screen name="(app)" />
       </Stack.Protected>
-      <Stack.Protected guard={!user}>
+      <Stack.Protected guard={!user} redirectTo="/">
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
     </Stack>
