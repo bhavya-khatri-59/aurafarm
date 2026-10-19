@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, radius } from '@/theme';
+import { useTheme, useThemedStyles } from '@/lib/theme';
+import { radius, type Colors } from '@/theme';
 
 type Props = {
   visible: boolean;
@@ -11,6 +12,8 @@ type Props = {
 };
 
 export function RenameModal({ visible, initialTitle, onCancel, onSave }: Props) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [title, setTitle] = useState(initialTitle);
   useEffect(() => setTitle(initialTitle), [initialTitle, visible]);
   const save = () => title.trim() && onSave(title.trim());
@@ -25,6 +28,7 @@ export function RenameModal({ visible, initialTitle, onCancel, onSave }: Props) 
             value={title}
             onChangeText={setTitle}
             autoFocus
+            selectionColor={colors.primary}
             maxLength={200}
             onSubmitEditing={save}
           />
@@ -42,21 +46,22 @@ export function RenameModal({ visible, initialTitle, onCancel, onSave }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 24 },
-  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 20 },
-  title: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: colors.text,
-  },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 8 },
-  action: { paddingHorizontal: 14, paddingVertical: 8 },
-  cancel: { color: colors.textMuted, fontSize: 16 },
-  save: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 24 },
+    card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: 20 },
+    title: { fontSize: 17, fontWeight: '600', color: colors.text, marginBottom: 12 },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: colors.text,
+    },
+    actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 8 },
+    action: { paddingHorizontal: 14, paddingVertical: 8 },
+    cancel: { color: colors.textMuted, fontSize: 16 },
+    save: { color: colors.primary, fontSize: 16, fontWeight: '600' },
+  });

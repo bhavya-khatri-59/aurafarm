@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useGlobalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
+import { router, useGlobalSearchParams, usePathname } from 'expo-router';
 import type { DrawerContentComponentProps } from 'expo-router/drawer';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,8 +9,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RenameModal } from './RenameModal';
 import { useAuth } from '@/lib/auth';
 import { useConversations } from '@/lib/conversations';
+import { openConversation } from '@/lib/navigation';
+import { useTheme, useThemedStyles } from '@/lib/theme';
 import type { Conversation } from '@/lib/types';
-import { colors, radius } from '@/theme';
+import { radius, type Colors } from '@/theme';
 
 function relativeDay(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -20,13 +23,17 @@ function relativeDay(iso: string): string {
 }
 
 export function ConversationDrawer({ navigation }: DrawerContentComponentProps) {
-  const { id: activeId } = useGlobalSearchParams<{ id?: string }>();
+  const { id } = useGlobalSearchParams<{ id?: string }>();
+  const pathname = usePathname();
+  const activeId = pathname === '/' ? id : undefined;
   const { conversations, isLoading, rename, remove } = useConversations();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [renaming, setRenaming] = useState<Conversation | null>(null);
 
-  const open = (id?: string) => {
-    router.setParams({ id });
+  const open = (conversationId?: string) => {
+    openConversation(conversationId);
     navigation.closeDrawer();
   };
 
@@ -54,49 +61,72 @@ export function ConversationDrawer({ navigation }: DrawerContentComponentProps) 
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left']}>
-      <Text style={styles.brand}>AuraFarm</Text>
+      <View style={styles.brandRow}>
+        <Image source={require('../../assets/logo.png')} style={styles.logo} contentFit="contain" />
+        <Text style={styles.brand}>AuraFarm</Text>
+      </View>
+
       <Pressable style={styles.newButton} onPress={() => open(undefined)}>
-        <Ionicons name="add" size={20} color="#fff" />
+        <Ionicons name="add" size={20} color={colors.onPrimary} />
         <Text style={styles.newButtonText}>New conversation</Text>
       </Pressable>
 
+      <Text style={styles.sectionLabel}>Conversations</Text>
       {isLoading ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
       ) : (
         <FlatList
           data={conversations}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={{ paddingVertical: 8 }}
+          contentContainerStyle={{ paddingBottom: 8 }}
           ListEmptyComponent={<Text style={styles.empty}>Your conversations will appear here.</Text>}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[styles.item, item.id === activeId && styles.itemActive]}
-              onPress={() => open(item.id)}
-              onLongPress={() => showActions(item)}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemTitle} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.itemDate}>{relativeDay(item.updated_at)}</Text>
-              </View>
-              <Pressable hitSlop={10} onPress={() => showActions(item)} accessibilityLabel="Conversation options">
-                <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+          renderItem={({ item }) => {
+            const active = item.id === activeId;
+            return (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.item,
+                  active && styles.itemActive,
+                  pressed && !active && styles.itemPressed,
+                ]}
+                onPress={() => open(item.id)}
+                onLongPress={() => showActions(item)}
+              >
+                <Ionicons
+                  name={active ? 'chatbubble' : 'chatbubble-outline'}
+                  size={16}
+                  color={active ? colors.primary : colors.textMuted}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.itemTitle, active && styles.itemTitleActive]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.itemDate}>{relativeDay(item.updated_at)}</Text>
+                </View>
+                <Pressable hitSlop={10} onPress={() => showActions(item)} accessibilityLabel="Conversation options">
+                  <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                </Pressable>
               </Pressable>
-            </Pressable>
-          )}
+            );
+          }}
         />
       )}
 
-      <View style={styles.footer}>
-        <Ionicons name="person-circle-outline" size={28} color={colors.textMuted} />
+      <Pressable
+        style={({ pressed }) => [styles.footer, pressed && { opacity: 0.7 }]}
+        onPress={() => {
+          router.navigate('/settings');
+          navigation.closeDrawer();
+        }}
+      >
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
+        </View>
         <Text style={styles.userName} numberOfLines={1}>
           {user?.name}
         </Text>
-        <Pressable onPress={signOut} hitSlop={10}>
-          <Text style={styles.signOut}>Sign out</Text>
-        </Pressable>
-      </View>
+        <Ionicons name="settings-outline" size={20} color={colors.textMuted} />
+      </Pressable>
 
       <RenameModal
         visible={renaming !== null}
@@ -112,40 +142,64 @@ export function ConversationDrawer({ navigation }: DrawerContentComponentProps) 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 12 },
-  brand: { fontSize: 22, fontWeight: '700', color: colors.primaryDark, marginTop: 12, marginBottom: 16, marginLeft: 4 },
-  newButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    borderRadius: radius.sm,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  newButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  empty: { color: colors.textMuted, textAlign: 'center', marginTop: 24 },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: radius.sm,
-    marginVertical: 1,
-  },
-  itemActive: { backgroundColor: colors.primarySoft },
-  itemTitle: { fontSize: 15, color: colors.text },
-  itemDate: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  userName: { flex: 1, color: colors.text, fontSize: 15 },
-  signOut: { color: colors.danger, fontWeight: '600' },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 12 },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, marginBottom: 18, marginLeft: 4 },
+    logo: { width: 30, height: 30 },
+    brand: { fontSize: 22, fontWeight: '700', color: colors.primaryStrong, letterSpacing: 0.2 },
+    newButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: colors.primary,
+      borderRadius: radius.md,
+      paddingVertical: 12,
+    },
+    newButtonText: { color: colors.onPrimary, fontWeight: '600', fontSize: 15 },
+    sectionLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginTop: 22,
+      marginBottom: 6,
+      marginLeft: 6,
+    },
+    empty: { color: colors.textMuted, textAlign: 'center', marginTop: 24 },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+      borderRadius: radius.sm,
+      marginVertical: 1,
+    },
+    itemActive: { backgroundColor: colors.primarySoft },
+    itemPressed: { backgroundColor: colors.surfaceMuted },
+    itemTitle: { fontSize: 15, color: colors.text },
+    itemTitleActive: { fontWeight: '600' },
+    itemDate: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+    },
+    avatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
+    userName: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '500' },
+  });

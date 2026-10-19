@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Composer, type PickedImage } from './Composer';
@@ -9,13 +11,14 @@ import { MessageBubble, type ChatItem } from './MessageBubble';
 import { api } from '@/lib/api';
 import { useConversations } from '@/lib/conversations';
 import { getCoords } from '@/lib/location';
+import { useTheme, useThemedStyles } from '@/lib/theme';
 import type { Message } from '@/lib/types';
-import { colors, radius } from '@/theme';
+import { radius, type Colors } from '@/theme';
 
-const SUGGESTIONS = [
-  'How do I prevent late blight on tomatoes?',
-  'What should I spray for powdery mildew on squash?',
-  'Where can I buy farm supplies near me?',
+const SUGGESTIONS: { text: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { text: 'How do I prevent late blight on tomatoes?', icon: 'shield-checkmark-outline' },
+  { text: 'What should I spray for powdery mildew on squash?', icon: 'water-outline' },
+  { text: 'Where can I buy farm supplies near me?', icon: 'location-outline' },
 ];
 
 const toItem = (m: Message): ChatItem => ({
@@ -28,6 +31,9 @@ const toItem = (m: Message): ChatItem => ({
 
 export function ChatScreen({ conversationId }: { conversationId: string | null }) {
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { touch, refresh } = useConversations();
   const [items, setItems] = useState<ChatItem[]>([]);
   const [text, setText] = useState('');
@@ -121,7 +127,12 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
                 updateItem(replyKey, (item) => ({ content: item.content + data.text, status: null }));
                 break;
               case 'message':
-                updateItem(replyKey, () => ({ key: `m${data.id}`, content: data.content, pending: false, status: null }));
+                updateItem(replyKey, () => ({
+                  key: `m${data.id}`,
+                  content: data.content,
+                  pending: false,
+                  status: null,
+                }));
                 break;
               case 'done':
                 refresh().catch(() => {});
@@ -152,69 +163,105 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
   const empty = !loading && items.length === 0;
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingBottom: insets.bottom }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
-      ) : loadError ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{loadError}</Text>
-        </View>
-      ) : empty ? (
-        <View style={styles.center}>
-          <Image source={require('../../assets/logo.png')} style={styles.logo} contentFit="contain" />
-          <Text style={styles.welcome}>How are your plants today?</Text>
-          <Text style={styles.welcomeSub}>
-            Send a photo of a leaf to diagnose a disease, or ask anything about your crops.
-          </Text>
-          <View style={styles.suggestions}>
-            {SUGGESTIONS.map((s) => (
-              <Pressable key={s} style={styles.suggestion} onPress={() => send(s)}>
-                <Text style={styles.suggestionText}>{s}</Text>
-              </Pressable>
-            ))}
+    // keyboard-controller handles Android edge-to-edge, where the window no longer resizes for the
+    // keyboard; automaticOffset accounts for the drawer header above this view.
+    <KeyboardAvoidingView behavior="padding" automaticOffset style={styles.container}>
+      <View style={styles.chatArea}>
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
+        ) : loadError ? (
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{loadError}</Text>
           </View>
-        </View>
-      ) : (
-        <FlatList
-          data={[...items].reverse()}
-          inverted
-          keyExtractor={(item) => item.key}
-          renderItem={({ item }) => <MessageBubble item={item} />}
-          contentContainerStyle={{ paddingVertical: 12 }}
-          keyboardDismissMode="interactive"
+        ) : empty ? (
+          <View style={styles.center}>
+            <View style={styles.logoBadge}>
+              <Image source={require('../../assets/logo.png')} style={styles.logo} contentFit="contain" />
+            </View>
+            <Text style={styles.welcome}>How are your plants today?</Text>
+            <Text style={styles.welcomeSub}>
+              Send a photo of a leaf to diagnose a disease, or ask anything about your crops.
+            </Text>
+            <View style={styles.suggestions}>
+              {SUGGESTIONS.map((s) => (
+                <Pressable
+                  key={s.text}
+                  style={({ pressed }) => [styles.suggestion, pressed && { opacity: 0.7 }]}
+                  onPress={() => send(s.text)}
+                >
+                  <Ionicons name={s.icon} size={18} color={colors.primary} />
+                  <Text style={styles.suggestionText}>{s.text}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <FlatList
+            data={[...items].reverse()}
+            inverted
+            keyExtractor={(item) => item.key}
+            renderItem={({ item }) => <MessageBubble item={item} />}
+            contentContainerStyle={{ paddingVertical: 12 }}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
+      </View>
+      <View style={{ paddingBottom: keyboardVisible ? 0 : insets.bottom, backgroundColor: colors.chatBackground }}>
+        <Composer
+          text={text}
+          onChangeText={setText}
+          image={image}
+          onChangeImage={setImage}
+          onSend={() => send()}
+          disabled={sending}
         />
-      )}
-      <Composer
-        text={text}
-        onChangeText={setText}
-        image={image}
-        onChangeImage={setImage}
-        onSend={() => send()}
-        disabled={sending}
-      />
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  logo: { width: 64, height: 64, marginBottom: 12 },
-  welcome: { fontSize: 22, fontWeight: '700', color: colors.text },
-  welcomeSub: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginTop: 6, maxWidth: 320 },
-  suggestions: { marginTop: 24, gap: 8, alignSelf: 'stretch' },
-  suggestion: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  suggestionText: { color: colors.text, fontSize: 15 },
-  errorText: { color: colors.danger, textAlign: 'center' },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.chatBackground },
+    chatArea: { flex: 1 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    logoBadge: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    logo: { width: 48, height: 48 },
+    welcome: { fontSize: 22, fontWeight: '700', color: colors.text },
+    welcomeSub: {
+      fontSize: 15,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 6,
+      maxWidth: 320,
+      lineHeight: 21,
+    },
+    suggestions: { marginTop: 24, gap: 10, alignSelf: 'stretch' },
+    suggestion: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingVertical: 13,
+      paddingHorizontal: 14,
+    },
+    suggestionText: { flex: 1, color: colors.text, fontSize: 15 },
+    errorText: { color: colors.danger, textAlign: 'center' },
+  });

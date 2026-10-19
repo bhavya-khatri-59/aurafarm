@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useTheme, useThemedStyles } from '@/lib/theme';
 import type { Diagnosis } from '@/lib/types';
-import { colors, radius } from '@/theme';
+import { radius, type Colors } from '@/theme';
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 export function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const uncertain = diagnosis.status === 'uncertain';
   const weather = diagnosis.weather && !diagnosis.weather.error ? diagnosis.weather : null;
   const outbreak = diagnosis.outbreaks?.by_disease.find((d) => d.label === diagnosis.label);
@@ -24,6 +27,17 @@ export function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
           <Text style={styles.name}>{diagnosis.name}</Text>
         </View>
         <Text style={[styles.confidence, uncertain && { color: colors.warning }]}>{percent(diagnosis.confidence)}</Text>
+      </View>
+      <View style={styles.meter}>
+        <View
+          style={[
+            styles.meterFill,
+            {
+              width: percent(diagnosis.confidence) as `${number}%`,
+              backgroundColor: uncertain ? colors.warning : colors.primary,
+            },
+          ]}
+        />
       </View>
 
       {uncertain && diagnosis.alternatives.length > 0 && (
@@ -76,25 +90,29 @@ export function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    padding: 14,
-    gap: 8,
-    marginBottom: 8,
-  },
-  cardUncertain: { backgroundColor: colors.warningSoft },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  name: { fontSize: 17, fontWeight: '700', color: colors.text },
-  confidence: { fontSize: 17, fontWeight: '700', color: colors.primary },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  detail: { flex: 1, fontSize: 14, color: colors.textMuted },
-  places: { gap: 6, marginTop: 2 },
-  placesTitle: { fontSize: 13, fontWeight: '600', color: colors.text },
-  place: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  placeName: { flexShrink: 1, fontSize: 14, color: colors.primaryDark, fontWeight: '500' },
-  placeMeta: { fontSize: 12, color: colors.textMuted },
-  hint: { fontSize: 13, color: colors.textMuted, fontStyle: 'italic' },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.primarySoft,
+      borderRadius: radius.md,
+      padding: 14,
+      gap: 8,
+      marginTop: 2,
+      marginBottom: 10,
+    },
+    meter: { height: 4, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden' },
+    meterFill: { height: 4, borderRadius: 2 },
+    cardUncertain: { backgroundColor: colors.warningSoft },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+    name: { fontSize: 17, fontWeight: '700', color: colors.text },
+    confidence: { fontSize: 17, fontWeight: '700', color: colors.primary },
+    row: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+    detail: { flex: 1, fontSize: 14, color: colors.textMuted },
+    places: { gap: 6, marginTop: 2 },
+    placesTitle: { fontSize: 13, fontWeight: '600', color: colors.text },
+    place: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    placeName: { flexShrink: 1, fontSize: 14, color: colors.primaryStrong, fontWeight: '500' },
+    placeMeta: { fontSize: 12, color: colors.textMuted },
+    hint: { fontSize: 13, color: colors.textMuted, fontStyle: 'italic' },
+  });
