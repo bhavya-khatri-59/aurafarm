@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Composer, type PickedImage } from './Composer';
@@ -32,7 +33,14 @@ const toItem = (m: Message): ChatItem => ({
 
 export function ChatScreen({ conversationId }: { conversationId: string | null }) {
   const insets = useSafeAreaInsets();
-  const keyboardVisible = useKeyboardState((state) => state.isVisible);
+  // The chat screen reaches the bottom edge of the screen (Android draws edge-to-edge), and
+  // `height` is the keyboard's height measured from that edge (negative while open). Padding by it
+  // keeps the composer right above the keyboard without measuring where this view sits, which
+  // is what KeyboardAvoidingView got wrong under the drawer header.
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const keyboardPadding = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(-keyboardHeight.value, insets.bottom),
+  }));
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { touch, refresh } = useConversations();
@@ -165,9 +173,7 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
   const empty = !loading && items.length === 0;
 
   return (
-    // keyboard-controller handles Android edge-to-edge, where the window no longer resizes for the
-    // keyboard; automaticOffset accounts for the drawer header above this view.
-    <KeyboardAvoidingView behavior="padding" automaticOffset style={styles.container}>
+    <Animated.View style={[styles.container, keyboardPadding]}>
       <View style={styles.chatArea}>
         {loading ? (
           <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />
@@ -209,17 +215,15 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
           />
         )}
       </View>
-      <View style={{ paddingBottom: keyboardVisible ? 0 : insets.bottom, backgroundColor: colors.chatBackground }}>
-        <Composer
-          text={text}
-          onChangeText={setText}
-          image={image}
-          onChangeImage={setImage}
-          onSend={() => send()}
-          disabled={sending}
-        />
-      </View>
-    </KeyboardAvoidingView>
+      <Composer
+        text={text}
+        onChangeText={setText}
+        image={image}
+        onChangeImage={setImage}
+        onSend={() => send()}
+        disabled={sending}
+      />
+    </Animated.View>
   );
 }
 
