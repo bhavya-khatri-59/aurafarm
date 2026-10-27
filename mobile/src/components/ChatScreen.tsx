@@ -210,12 +210,6 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
         )}
       </View>
       <View style={{ paddingBottom: keyboardVisible ? 0 : insets.bottom, backgroundColor: colors.chatBackground }}>
-        {demoMode && (
-          <View style={styles.demoBadge}>
-            <Ionicons name="flask-outline" size={13} color={colors.warning} />
-            <Text style={styles.demoBadgeText}>Demo mode: photos use saved results</Text>
-          </View>
-        )}
         <Composer
           text={text}
           onChangeText={setText}
@@ -272,16 +266,4 @@ const makeStyles = (colors: Colors) =>
     },
     suggestionText: { flex: 1, color: colors.text, fontSize: 15 },
     errorText: { color: colors.danger, textAlign: 'center' },
-    demoBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'center',
-      gap: 5,
-      backgroundColor: colors.warningSoft,
-      borderRadius: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 3,
-      marginTop: 4,
-    },
-    demoBadgeText: { fontSize: 12, color: colors.warning, fontWeight: '500' },
   });
