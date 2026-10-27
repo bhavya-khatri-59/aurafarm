@@ -11,6 +11,7 @@ import { MessageBubble, type ChatItem } from './MessageBubble';
 import { api } from '@/lib/api';
 import { useConversations } from '@/lib/conversations';
 import { getCoords } from '@/lib/location';
+import { useSettings } from '@/lib/settings';
 import { useTheme, useThemedStyles } from '@/lib/theme';
 import type { Message } from '@/lib/types';
 import { radius, type Colors } from '@/theme';
@@ -35,6 +36,7 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { touch, refresh } = useConversations();
+  const { demoMode } = useSettings();
   const [items, setItems] = useState<ChatItem[]>([]);
   const [text, setText] = useState('');
   const [image, setImage] = useState<PickedImage | null>(null);
@@ -110,7 +112,7 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
 
         await api.sendMessage(
           id,
-          { text: messageText, image_id: imageId, ...(coords ?? {}) },
+          { text: messageText, image_id: imageId, demo_mode: demoMode, ...(coords ?? {}) },
           ({ event, data }) => {
             if (abort.signal.aborted) return;
             switch (event) {
@@ -157,7 +159,7 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
         }
       }
     },
-    [text, image, sending, touch, refresh, updateItem],
+    [text, image, sending, demoMode, touch, refresh, updateItem],
   );
 
   const empty = !loading && items.length === 0;
@@ -208,6 +210,12 @@ export function ChatScreen({ conversationId }: { conversationId: string | null }
         )}
       </View>
       <View style={{ paddingBottom: keyboardVisible ? 0 : insets.bottom, backgroundColor: colors.chatBackground }}>
+        {demoMode && (
+          <View style={styles.demoBadge}>
+            <Ionicons name="flask-outline" size={13} color={colors.warning} />
+            <Text style={styles.demoBadgeText}>Demo mode: photos use saved results</Text>
+          </View>
+        )}
         <Composer
           text={text}
           onChangeText={setText}
@@ -264,4 +272,16 @@ const makeStyles = (colors: Colors) =>
     },
     suggestionText: { flex: 1, color: colors.text, fontSize: 15 },
     errorText: { color: colors.danger, textAlign: 'center' },
+    demoBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+      gap: 5,
+      backgroundColor: colors.warningSoft,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      marginTop: 4,
+    },
+    demoBadgeText: { fontSize: 12, color: colors.warning, fontWeight: '500' },
   });

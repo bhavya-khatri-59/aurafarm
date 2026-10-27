@@ -20,3 +20,5 @@ class AgentState(TypedDict, total=False):
     new_diagnosis: bool
     # The remedy agent's research for `diagnosis`; cleared whenever a new photo is diagnosed.
     remedy_notes: str | None
+    # Set when the leaf check rejected this turn's photo.
+    image_rejected: bool

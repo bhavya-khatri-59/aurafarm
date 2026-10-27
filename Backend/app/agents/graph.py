@@ -1,12 +1,14 @@
 """The AuraFarm agent graph.
 
-    START ─┬─(photo)─> diagnose ─┬─(confident disease)─> remedy_research ─┐
+    START ─┬─(photo)─> diagnose ─┬─(not a plant)──────────> reject_image ─> END
+           │                     ├─(confident disease)─> remedy_research ─┐
            │                     └────────────────────────────────────────┤
            └──────────────────────────────────────────────────────────────┴─> orchestrator <──> tools ─> END
 
-- diagnose: deterministic node (classifier, weather, outbreaks, places).
+- diagnose: deterministic node (optional leaf check, classifier, weather, outbreaks, places).
+- reject_image: fixed reply for photos that fail the leaf check; no LLM call.
 - remedy_research: runs the remedy agent for a new confident diagnosis, so treatment advice never
-  depends on the orchestrator deciding to ask for it.
+  depends on the orchestrator deciding to ask for it. Research is cached per disease.
 - orchestrator: LLM that talks to the farmer and decides which tools/agents to call.
 - tools: `consult_remedy_specialist` (the remedy agent, for other questions) and `find_nearby_help`.
 """
@@ -17,7 +19,7 @@ from collections.abc import Callable
 from typing import Annotated
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, trim_messages
+from langchain_core.messages import AIMessage, SystemMessage, trim_messages
 from langchain_core.messages.utils import count_tokens_approximately
 from langchain_core.tools import tool
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -34,12 +36,31 @@ from app.agents.prompts import ORCHESTRATOR_PROMPT
 from app.agents.remedy import build_remedy_agent, run_remedy_agent
 from app.agents.state import AgentState
 from app.config import get_settings
-from app.services import places
+from app.services import cache, places
+from app.services.guardrails import NOT_A_PLANT_REPLY
 from app.services.knowledge_base import KnowledgeBase
 
 logger = logging.getLogger(__name__)
 
 ORCHESTRATOR_NODE = "orchestrator"
+
+
+def _compact_diagnosis(diagnosis: dict) -> dict:
+    """The diagnosis without fields the LLM doesn't need, to keep prompts (and token use) small."""
+    compact = {k: v for k, v in diagnosis.items() if k not in {"label", "crop", "disease", "location_available"}}
+    if compact.get("weather") and compact["weather"].get("forecast"):
+        compact["weather"] = {
+            **compact["weather"],
+            "forecast": [
+                {k: day.get(k) for k in ("date", "chance_of_rain", "avg_humidity", "condition")}
+                for day in compact["weather"]["forecast"]
+            ],
+        }
+    if compact.get("nearby_places"):
+        compact["nearby_places"] = [
+            {k: place.get(k) for k in ("name", "category", "distance_km")} for place in compact["nearby_places"][:4]
+        ]
+    return compact
 
 
 def _context_block(state: AgentState) -> str:
@@ -54,21 +75,19 @@ def _context_block(state: AgentState) -> str:
             "NEW this turn: the photo has already been analysed, present this result now"
             if state.get("new_diagnosis") else "from an earlier message"
         )
-        parts.append(f"Latest photo diagnosis ({freshness}):\n{json.dumps(diagnosis)}")
+        parts.append(f"Latest photo diagnosis ({freshness}):\n{json.dumps(_compact_diagnosis(diagnosis))}")
     if state.get("remedy_notes"):
         parts.append(f"Remedy specialist's research for this diagnosis (already done):\n{state['remedy_notes']}")
     return "\n\n".join(parts)
 
 
 def _remedy_question(diagnosis: dict) -> str:
-    question = f"How should a farmer treat and prevent {diagnosis['name'].lower()}?"
-    weather = diagnosis.get("weather") or {}
-    if weather.get("humidity") is not None:
-        question += (
-            f" Current weather: {weather.get('condition')}, {weather.get('temp_c')}°C, "
-            f"{weather.get('humidity')}% humidity. Include cultural/organic and chemical options."
-        )
-    return question
+    # Weather-independent so the research can be cached per disease; the orchestrator relates it
+    # to the current weather.
+    return (
+        f"How should a farmer treat and prevent {diagnosis['name'].lower()}? "
+        "Include cultural/organic and chemical options, and how weather affects the disease."
+    )
 
 
 def build_graph(
@@ -102,7 +121,17 @@ def build_graph(
 
     async def remedy_research(state: AgentState) -> dict:
         diagnosis = state["diagnosis"]
-        return {"remedy_notes": await research(_remedy_question(diagnosis), diagnosis)}
+        async with sessions() as session:
+            notes = await cache.get_remedy_notes(session, diagnosis["label"])
+        if notes is None:
+            notes = await research(_remedy_question(diagnosis), diagnosis)
+            if not notes.startswith("The remedy specialist"):  # don't cache failure fallbacks
+                async with sessions() as session:
+                    await cache.store_remedy_notes(session, diagnosis["label"], notes)
+        return {"remedy_notes": notes}
+
+    async def reject_image(state: AgentState) -> dict:
+        return {"messages": [AIMessage(NOT_A_PLANT_REPLY)]}
 
     @tool
     async def consult_remedy_specialist(
@@ -161,6 +190,8 @@ def build_graph(
         return "diagnose" if state.get("image_id") else ORCHESTRATOR_NODE
 
     def route_after_diagnosis(state: AgentState) -> str:
+        if state.get("image_rejected"):
+            return "reject_image"
         diagnosis = state["diagnosis"]
         if diagnosis["status"] == "confident" and not diagnosis["is_healthy"]:
             return "remedy_research"
@@ -169,10 +200,14 @@ def build_graph(
     graph = StateGraph(AgentState)
     graph.add_node("diagnose", make_diagnosis_node(sessions, load_image))
     graph.add_node("remedy_research", remedy_research)
+    graph.add_node("reject_image", reject_image)
     graph.add_node(ORCHESTRATOR_NODE, orchestrator)
     graph.add_node("tools", ToolNode(tools))
     graph.add_conditional_edges(START, route_start, ["diagnose", ORCHESTRATOR_NODE])
-    graph.add_conditional_edges("diagnose", route_after_diagnosis, ["remedy_research", ORCHESTRATOR_NODE])
+    graph.add_conditional_edges(
+        "diagnose", route_after_diagnosis, ["reject_image", "remedy_research", ORCHESTRATOR_NODE]
+    )
+    graph.add_edge("reject_image", END)
     graph.add_edge("remedy_research", ORCHESTRATOR_NODE)
     graph.add_conditional_edges(ORCHESTRATOR_NODE, tools_condition, {"tools": "tools", END: END})
     graph.add_edge("tools", ORCHESTRATOR_NODE)

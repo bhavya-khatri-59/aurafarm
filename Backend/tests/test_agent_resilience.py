@@ -31,18 +31,46 @@ async def test_tool_schemas_have_no_required_arguments(db):
         assert "state" not in spec["function"]["parameters"]["properties"]
 
 
-async def test_remedy_agent_retries_after_groq_tool_call_error():
+class FakeKB:
+    def __init__(self, hits):
+        self.hits = hits
+        self.searches = []
+
+    async def asearch(self, query, crop=None, disease=None, k=5):
+        self.searches.append((query, crop, disease))
+        return self.hits
+
+
+SCOPED_HIT = {"text": "Apply mancozeb.", "title": "Guide", "source_url": "https://ex.org", "match": "crop_and_disease"}
+
+
+async def test_remedy_agent_retries_after_groq_error():
     remedy = FailingOnceChatModel(responses=[AIMessage("Use mancozeb.")])
-    agent = build_remedy_agent(remedy, lambda: None)
+    agent = build_remedy_agent(remedy, lambda: FakeKB([SCOPED_HIT, SCOPED_HIT]))
     assert await run_remedy_agent(agent, "late blight?", "tomato", "late_blight") == "Use mancozeb."
 
 
-async def test_empty_web_search_call_gets_an_error_message_not_a_crash():
-    remedy = ScriptedChatModel(responses=[tool_call("search_web", {}), AIMessage("done")])
-    agent = build_remedy_agent(remedy, lambda: None)
-    await run_remedy_agent(agent, "q", None, None)
-    tool_result = next(m for m in remedy.calls[1] if isinstance(m, ToolMessage))
-    assert "non-empty" in tool_result.content
+async def test_remedy_agent_uses_web_only_when_knowledge_base_is_thin(monkeypatch):
+    from app.agents import remedy as remedy_module
+
+    queries = []
+
+    async def fake_web_search(query, max_results=5):
+        queries.append(query)
+        return [{"title": "Web page", "url": "https://web.example", "snippet": "Spray copper."}]
+
+    monkeypatch.setattr(remedy_module, "web_search", fake_web_search)
+
+    model = ScriptedChatModel(responses=[AIMessage("notes 1"), AIMessage("notes 2")])
+    agent = build_remedy_agent(model, lambda: FakeKB([SCOPED_HIT, SCOPED_HIT]))
+    await run_remedy_agent(agent, "treat it?", "tomato", "late_blight")
+    assert queries == []
+
+    agent = build_remedy_agent(model, lambda: FakeKB([{**SCOPED_HIT, "match": "unscoped"}]))
+    await run_remedy_agent(agent, "treat it?", "tomato", "late_blight")
+    assert queries == ["tomato late blight treat it?"]
+    assert "[WEB1] Web page (https://web.example)" in model.calls[1][-1].content
+    assert len(model.calls) == 2  # still one LLM call per question
 
 
 async def test_turn_completes_when_remedy_agent_fails(db):

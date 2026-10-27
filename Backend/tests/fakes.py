@@ -84,3 +84,20 @@ class FailingOnceChatModel(ScriptedChatModel):
 class AlwaysFailingChatModel(ScriptedChatModel):
     def _generate(self, messages, stop=None, run_manager=None, **kwargs) -> ChatResult:
         raise RuntimeError("model unavailable")
+
+
+def jpeg_bytes(color=(60, 140, 50), size=(320, 240), pattern: int = 0, quality: int = 90) -> bytes:
+    """A real JPEG; `pattern` varies the content so different values give different photos."""
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", size, color)
+    draw = ImageDraw.Draw(image)
+    for i in range(6):
+        x = (i * 53 + pattern * 97) % size[0]
+        y = (i * 37 + pattern * 61) % size[1]
+        draw.ellipse([x, y, x + 40 + pattern * 7, y + 30], fill=(120 + i * 20, 80, 30 + pattern * 40 % 200))
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=quality)
+    return buffer.getvalue()

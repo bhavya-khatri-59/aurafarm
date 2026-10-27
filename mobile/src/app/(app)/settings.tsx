@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-nat
 
 import { useAuth } from '@/lib/auth';
 import { API_URL } from '@/lib/config';
+import { useSettings } from '@/lib/settings';
 import { useTheme, useThemedStyles, type ThemePreference } from '@/lib/theme';
 import { radius, type Colors } from '@/theme';
 
@@ -15,6 +16,7 @@ const APPEARANCE: { value: ThemePreference; label: string; icon: keyof typeof Io
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { colors, isDark, preference, setPreference } = useTheme();
+  const { demoMode, setDemoMode } = useSettings();
   const styles = useThemedStyles(makeStyles);
 
   return (
@@ -49,6 +51,24 @@ export default function SettingsScreen() {
           })}
         </View>
         <Text style={styles.hint}>“System” follows your phone’s setting.</Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>Demo</Text>
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <Ionicons name="flask-outline" size={20} color={colors.textMuted} />
+          <Text style={styles.rowLabel}>Demo mode</Text>
+          <Switch
+            value={demoMode}
+            onValueChange={setDemoMode}
+            trackColor={{ true: colors.primary, false: colors.border }}
+            thumbColor={colors.surface}
+          />
+        </View>
+        <Text style={styles.hint}>
+          Photos are answered only from replies saved on the server, with no AI calls. Photos that were never sent
+          before get a “couldn’t identify” reply. Text questions work as normal.
+        </Text>
       </View>
 
       <Text style={styles.sectionTitle}>Account</Text>

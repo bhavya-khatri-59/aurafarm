@@ -38,6 +38,9 @@ class KnowledgeBase:
             collection_name, configuration={"hnsw": {"space": "cosine"}}, embedding_function=None
         )
 
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        return self._embed(texts)
+
     def count(self) -> int:
         return self._collection.count()
 

@@ -82,3 +82,27 @@ class DiseaseReport(Base):
     confidence: Mapped[float] = mapped_column(Float)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+
+
+class ResponseCache(Base):
+    """A finished reply to a photo, reused when the same photo (by perceptual hash) is sent again."""
+
+    __tablename__ = "response_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    image_hash: Mapped[str] = mapped_column(String(16), index=True)
+    text: Mapped[str] = mapped_column(Text, default="")  # normalized user text sent with the photo
+    reply: Mapped[str] = mapped_column(Text)
+    diagnosis: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    remedy_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class RemedyCache(Base):
+    """The remedy agent's research for a disease label; shared by every photo of that disease."""
+
+    __tablename__ = "remedy_cache"
+
+    label: Mapped[str] = mapped_column(String(100), primary_key=True)
+    notes: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

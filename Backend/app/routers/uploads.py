@@ -1,7 +1,9 @@
+from io import BytesIO
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -32,6 +34,11 @@ async def create_upload(
     data = await image.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Images must be 10 MB or smaller")
+
+    try:
+        Image.open(BytesIO(data)).verify()
+    except (UnidentifiedImageError, OSError, SyntaxError):
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "That file isn't a readable image")
 
     upload_id = _uuid()
     upload = Upload(id=upload_id, user_id=user.id, filename=f"{upload_id}{extension}",

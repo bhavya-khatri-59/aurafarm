@@ -15,7 +15,7 @@ from app.models import DiseaseReport
 from app.services import classifier, places, weather
 from app.services.knowledge_base import KnowledgeBase
 from tests.conftest import register
-from tests.fakes import ScriptedChatModel, StreamingScriptedChatModel, hashing_embedder, tool_call
+from tests.fakes import ScriptedChatModel, StreamingScriptedChatModel, hashing_embedder, jpeg_bytes, tool_call
 
 
 def parse_sse(body: str) -> list[tuple[str, dict]]:
@@ -67,7 +67,6 @@ async def test_photo_turn_then_follow_up(client, stub_services, kb):
         AIMessage("Yes, remove and destroy the infected plants."),
     ])
     remedy = ScriptedChatModel(responses=[
-        tool_call("search_knowledge_base", {"query": "treat late blight"}),
         AIMessage("Destroy infected plants; apply mancozeb. Sources: Late blight guide (https://ex.org/lb)"),
     ])
     app.state.graph = build_graph(
@@ -82,7 +81,7 @@ async def test_photo_turn_then_follow_up(client, stub_services, kb):
     headers = await register(client)
     conversation_id = (await client.post("/conversations", json={}, headers=headers)).json()["id"]
     upload_id = (await client.post(
-        "/uploads", files={"image": ("leaf.jpg", b"\xff\xd8fakejpeg", "image/jpeg")}, headers=headers
+        "/uploads", files={"image": ("leaf.jpg", jpeg_bytes(), "image/jpeg")}, headers=headers
     )).json()["id"]
 
     # Turn 1: photo + location.
@@ -104,12 +103,12 @@ async def test_photo_turn_then_follow_up(client, stub_services, kb):
     assert dict(events)["message"]["content"].startswith("Your tomato has **late blight**")
     assert dict(events)["done"]["conversation_title"] == "What is wrong with my plant?"
 
-    # Remedy research ran deterministically after the diagnosis, scoped to the diagnosed disease,
-    # and was asked about the current weather.
-    assert "92% humidity" in remedy.calls[0][-1].content
-    kb_result = next(m for m in remedy.calls[1] if isinstance(m, ToolMessage))
-    hits = json.loads(kb_result.content)
-    assert hits[0]["disease"] == "late_blight" and hits[0]["match"] == "crop_and_disease"
+    # Remedy research ran deterministically after the diagnosis in a single LLM call, with the
+    # knowledge base scoped to the diagnosed disease (late blight before early blight).
+    assert len(remedy.calls) == 1
+    sources = remedy.calls[0][-1].content
+    assert "[KB1] Late blight guide (https://ex.org/lb)" in sources
+    assert sources.index("Late blight guide") < sources.index("Early blight guide")
 
     # The orchestrator answered in one step with the diagnosis and the research in its context.
     assert len(orchestrator.calls) == 1
@@ -131,9 +130,9 @@ async def test_photo_turn_then_follow_up(client, stub_services, kb):
     assert "diagnosis" not in [kind for kind, _ in events]
     assert dict(events)["message"]["content"] == "Yes, remove and destroy the infected plants."
     follow_up_system = orchestrator.calls[1][0].content
-    assert "from an earlier message" in follow_up_system and "Tomato___Late_blight" in follow_up_system
+    assert "from an earlier message" in follow_up_system and "Tomato late blight" in follow_up_system
     assert "apply mancozeb. Sources: Late blight guide" in follow_up_system
-    assert len(remedy.calls) == 2  # no new research needed
+    assert len(remedy.calls) == 1  # no new research needed
 
     detail = (await client.get(f"/conversations/{conversation_id}", headers=headers)).json()
     assert [m["role"] for m in detail["messages"]] == ["user", "assistant", "user", "assistant"]
@@ -188,7 +187,7 @@ async def test_uncertain_diagnosis_is_not_recorded(client, monkeypatch, stub_ser
     headers = await register(client)
     conversation_id = (await client.post("/conversations", json={}, headers=headers)).json()["id"]
     upload_id = (await client.post(
-        "/uploads", files={"image": ("leaf.jpg", b"\xff\xd8fakejpeg", "image/jpeg")}, headers=headers
+        "/uploads", files={"image": ("leaf.jpg", jpeg_bytes(), "image/jpeg")}, headers=headers
     )).json()["id"]
 
     events = parse_sse((await client.post(

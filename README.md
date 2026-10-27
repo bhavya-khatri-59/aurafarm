@@ -29,7 +29,7 @@ mobile/ (Expo React Native)  ──HTTP + SSE──>  Backend/ (FastAPI)
 | :--- | :--- |
 | **diagnose** (deterministic node) | Runs ResNet9 (top 3), then fetches weather, nearby outbreak reports and nearby places in parallel. Records confident diagnoses, at roughly 1 km resolution, for the community signal. |
 | **orchestrator** (Groq LLM) | Talks to the farmer, interprets the diagnosis and context, and decides when to call tools. |
-| `consult_remedy_specialist` | Runs the **remedy agent**, a tool-calling loop over `search_knowledge_base` (Chroma, filtered by crop/disease) and `search_web` (DuckDuckGo, or Tavily if configured). Returns cited advice. |
+| `consult_remedy_specialist` | Runs the **remedy agent**: a RAG pipeline that retrieves from Chroma (filtered by crop/disease), adds a web search (DuckDuckGo, or Tavily if configured) only when the knowledge base is thin, and makes one LLM call to write cited advice. |
 | `find_nearby_help` | Finds agri-input shops, Krishi Vigyan Kendras and agriculture offices via the Overpass API. |
 
 **Storage** (all local, under `Backend/data/`):
@@ -74,6 +74,30 @@ npx expo start
 
 The app uses native modules (secure storage, camera, location), so run it in a development build (`npx expo run:android`) or in Expo Go if your Expo Go version matches SDK 58.
 
+### Caching, demo mode and guardrails
+
+**Caching** (stored in `Backend/data/aurafarm.db`, so it survives server restarts and app rebuilds):
+- *Photo replies* are keyed by a perceptual hash of the image, which survives the phone re-compressing it. The same photo with the same text is answered instantly with no LLM calls.
+- *Remedy research* is cached per disease for `REMEDY_CACHE_DAYS`, so every photo of a known disease needs a single LLM call.
+- `python -m scripts.cache list` shows what is cached; `python -m scripts.cache clear` empties it.
+
+**Demo mode** (Settings → Demo mode in the app): photos are answered only from the photo cache. Uncached photos get a "couldn't identify" reply, and text questions work as normal. To prepare a demo, send each test photo once with demo mode off, or with the server running:
+```bash
+python -m scripts.warm_cache --email you@example.com --password ... demo_photos/*.jpg
+```
+
+**Guardrails** (refusals are fixed replies that never reach the LLM):
+- Input rules refuse requests for code and attempts to override the assistant's instructions; the prompt limits the assistant to farming and plant health; replies containing code are replaced.
+- Optional embedding off-topic filter: run `python -m scripts.check_topics` to see how it scores messages, then set `TOPIC_FILTER_ENABLED=true`.
+- Optional **leaf check** with CLIP (`openai/clip-vit-base-patch32`, ~600 MB, runs locally on CPU):
+  ```bash
+  # one-time download into the Hugging Face cache (~/.cache/huggingface)
+  python -c "from transformers import CLIPModel, CLIPProcessor; m='openai/clip-vit-base-patch32'; CLIPModel.from_pretrained(m); CLIPProcessor.from_pretrained(m)"
+  # score your own photos (leaves and non-leaves) to pick a threshold
+  python -m scripts.check_leaf photos/*.jpg
+  ```
+  Then set `LEAF_CHECK_ENABLED=true` (and `LEAF_CHECK_THRESHOLD` if needed) in `.env` and restart. It is skipped for cached photos, so demo mode never loads it.
+
 ### API overview
 
 | Method & path | Purpose |
@@ -81,7 +105,7 @@ The app uses native modules (secure storage, camera, location), so run it in a d
 | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` | Email/password accounts, JWT bearer tokens |
 | `GET/POST /conversations`, `GET/PATCH/DELETE /conversations/{id}` | List, create, load, rename, delete conversations |
 | `POST /uploads`, `GET /uploads/{id}` | Upload a leaf photo, fetch it back (owner only) |
-| `POST /conversations/{id}/messages` | Run an agent turn. Body: `{text, image_id?, lat?, lon?}`. Response: server-sent events `user_message`, `status`, `diagnosis`, `token`, `message`, `done` / `error` |
+| `POST /conversations/{id}/messages` | Run an agent turn. Body: `{text, image_id?, lat?, lon?, demo_mode?}`. Response: server-sent events `user_message`, `status`, `diagnosis`, `token`, `message`, `done` / `error` |
 
 > The legacy Flutter app (`Frontend/`) and web app (`frontend-web/`) call the old `/diagnose` endpoint, which no longer exists.
 

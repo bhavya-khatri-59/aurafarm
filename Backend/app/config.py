@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     orchestrator_model: str = "openai/gpt-oss-120b"
     remedy_model: str = "openai/gpt-oss-120b"
-    max_history_tokens: int = 8000
+    max_history_tokens: int = 4000
+    max_reply_tokens: int = 900
 
     # External services
     weather_api_key: str = ""
@@ -34,6 +35,20 @@ class Settings(BaseSettings):
     outbreak_radius_km: float = 10.0
     outbreak_window_days: int = 14
     places_radius_km: float = 15.0
+
+    # Caching (stored in the SQLite database, so it survives restarts and app rebuilds)
+    remedy_cache_days: int = 7
+    # Max Hamming distance between 64-bit perceptual hashes for two photos to count as the same.
+    image_match_distance: int = 6
+
+    # Guardrails
+    # CLIP zero-shot check that a photo shows a plant (off by default; see scripts/check_leaf.py).
+    leaf_check_enabled: bool = False
+    leaf_check_model: str = "openai/clip-vit-base-patch32"
+    leaf_check_threshold: float = 0.5
+    # Embedding-based off-topic filter for text (off until calibrated; see scripts/check_topics.py).
+    topic_filter_enabled: bool = False
+    topic_filter_margin: float = 0.05
 
     # Knowledge base
     embedding_model: str = "BAAI/bge-small-en-v1.5"

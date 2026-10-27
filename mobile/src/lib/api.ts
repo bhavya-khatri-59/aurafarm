@@ -105,7 +105,7 @@ export const api = {
   /** Sends a message and calls onEvent for each server-sent event as the agent works. */
   async sendMessage(
     conversationId: string,
-    body: { text: string; image_id?: string | null; lat?: number; lon?: number },
+    body: { text: string; image_id?: string | null; lat?: number; lon?: number; demo_mode?: boolean },
     onEvent: (event: ServerEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {

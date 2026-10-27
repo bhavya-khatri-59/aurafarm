@@ -7,6 +7,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { SettingsProvider } from '@/lib/settings';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 
 function RootNavigator() {
@@ -57,9 +58,11 @@ export default function RootLayout() {
       <KeyboardProvider>
         <SafeAreaProvider>
           <ThemeProvider>
-            <AuthProvider>
-              <RootNavigator />
-            </AuthProvider>
+            <SettingsProvider>
+              <AuthProvider>
+                <RootNavigator />
+              </AuthProvider>
+            </SettingsProvider>
           </ThemeProvider>
         </SafeAreaProvider>
       </KeyboardProvider>

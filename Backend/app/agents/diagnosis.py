@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.agents.state import AgentState
 from app.config import get_settings
-from app.services import classifier, community, places, weather
+from app.services import classifier, community, leaf_check, places, weather
 from app.services.labels import get_label
 
 ImageLoader = Callable[[str], Awaitable[bytes]]
@@ -26,7 +26,10 @@ def make_diagnosis_node(sessions: async_sessionmaker[AsyncSession], load_image: 
         user_id = state["user_id"]
 
         write({"type": "status", "text": "Analyzing the leaf image…"})
-        predictions = await classifier.predict(await load_image(state["image_id"]), top_k=3)
+        image_bytes = await load_image(state["image_id"])
+        if not await leaf_check.looks_like_plant(image_bytes):
+            return {"image_id": None, "image_rejected": True}
+        predictions = await classifier.predict(image_bytes, top_k=3)
         top_label, top_confidence = predictions[0]
         plant = get_label(top_label)
         confident = top_confidence >= settings.confidence_threshold

@@ -1,4 +1,5 @@
 from tests.conftest import register
+from tests.fakes import jpeg_bytes
 
 
 async def test_conversation_crud_and_isolation(client):
@@ -28,8 +29,8 @@ async def test_conversation_crud_and_isolation(client):
 async def test_upload_roundtrip_and_ownership(client):
     alice = await register(client, "alice@example.com")
     bob = await register(client, "bob@example.com")
-    png = b"\x89PNG\r\n\x1a\n" + b"0" * 100
-    response = await client.post("/uploads", files={"image": ("leaf.png", png, "image/png")}, headers=alice)
+    png = jpeg_bytes()
+    response = await client.post("/uploads", files={"image": ("leaf.jpg", png, "image/jpeg")}, headers=alice)
     assert response.status_code == 201
     upload_id = response.json()["id"]
 
@@ -38,6 +39,8 @@ async def test_upload_roundtrip_and_ownership(client):
 
     rejected = await client.post("/uploads", files={"image": ("x.txt", b"hi", "text/plain")}, headers=alice)
     assert rejected.status_code == 415
+    corrupt = await client.post("/uploads", files={"image": ("x.jpg", b"\xff\xd8junk", "image/jpeg")}, headers=alice)
+    assert corrupt.status_code == 415
 
 
 async def test_send_message_without_llm_returns_503(client):

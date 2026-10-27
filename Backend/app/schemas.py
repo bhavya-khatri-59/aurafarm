@@ -69,6 +69,8 @@ class SendMessageRequest(BaseModel):
     image_id: str | None = None
     lat: float | None = Field(default=None, ge=-90, le=90)
     lon: float | None = Field(default=None, ge=-180, le=180)
+    # Demo mode answers photos only from the response cache (no LLM calls).
+    demo_mode: bool = False
 
 
 class UploadOut(BaseModel):
