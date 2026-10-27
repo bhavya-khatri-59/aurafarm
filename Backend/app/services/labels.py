@@ -26,9 +26,10 @@ class PlantLabel:
     def display(self) -> str:
         if self.is_healthy:
             return f"Healthy {self.crop_name.lower()}"
-        if self.disease_name.lower().startswith(self.crop_name.lower()):  # "Apple scab", not "Apple apple scab"
+        if self.crop_name.lower() in self.disease_name.lower():  # "Cedar apple rust", not "Apple cedar apple rust"
             return self.disease_name
-        return f"{self.crop_name} {self.disease_name.lower()}"
+        # Lowercase only the first letter, keeping names and acronyms like "Isariopsis" and "HLB".
+        return f"{self.crop_name} {self.disease_name[0].lower()}{self.disease_name[1:]}"
 
 
 _RAW: list[tuple[str, str, str, str, str]] = [

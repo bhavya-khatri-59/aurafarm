@@ -19,6 +19,9 @@ def test_label_normalization():
     assert LABELS["Tomato___healthy"].is_healthy
     assert LABELS["Pepper,_bell___Bacterial_spot"].display == "Bell pepper bacterial spot"
     assert LABELS["Apple___Apple_scab"].display == "Apple scab"
+    assert LABELS["Apple___Cedar_apple_rust"].display == "Cedar apple rust"
+    assert LABELS["Tomato___Late_blight"].display == "Tomato late blight"
+    assert LABELS["Orange___Haunglongbing_(Citrus_greening)"].display == "Orange citrus greening (HLB)"
 
 
 def test_geo_helpers():

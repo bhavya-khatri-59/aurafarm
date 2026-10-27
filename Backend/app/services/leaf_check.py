@@ -6,12 +6,15 @@ and calibrate the threshold with `python -m scripts.check_leaf <photos>`.
 """
 
 import asyncio
+import logging
 from functools import lru_cache
 from io import BytesIO
 
 from PIL import Image, ImageOps
 
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 PLANT_LABELS = [
     "a close-up photo of a plant leaf",
@@ -26,6 +29,8 @@ OTHER_LABELS = [
     "a photo of a vehicle",
     "a photo of an everyday object",
     "a screenshot of a phone or computer screen",
+    "a drawing, sketch or cartoon on paper",
+    "a painting or illustration",
     "a photo of a document or text",
     "a plain single-colour background",
 ]
@@ -59,4 +64,6 @@ async def looks_like_plant(image_bytes: bytes) -> bool:
     settings = get_settings()
     if not settings.leaf_check_enabled:
         return True
-    return await plant_probability(image_bytes) >= settings.leaf_check_threshold
+    probability = await plant_probability(image_bytes)
+    logger.info("Leaf check: plant probability %.3f (threshold %.2f)", probability, settings.leaf_check_threshold)
+    return probability >= settings.leaf_check_threshold
